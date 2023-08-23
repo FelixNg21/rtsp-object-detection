@@ -108,3 +108,5 @@ output/
 yolov3-tiny.weights
 /yolo-python-rtsp/object-detection.jpg
 /yolo-python-rtsp/yolov3.weights
+
+.idea

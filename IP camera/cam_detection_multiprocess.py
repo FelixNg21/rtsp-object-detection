@@ -1,15 +1,19 @@
 # Detects objects in a video stream from an IP camera
 # An attempt to use threading to improve performance was attempted but was not successful as VideoStream is already
 # threaded, so the bottleneck would be in the do_detection method.
+
+# Here an attempt at multiprocessing is made. The idea is to have the do_detection method run in a pool.
 # Source: https://www.codeproject.com/Articles/5344693/Object-Detection-with-an-IP-Camera-using-Python-an
 
+import argparse
 import cv2
 import imutils
-from imutils.video import VideoStream
+from imutils.video import VideoStream, FPS
 import io
 import requests
 import numpy as np
 from PIL import Image, ImageDraw
+from multiprocessing import Pool, Queue
 
 rtsp_url = "rtsp://localhost:8554/driveway"
 
@@ -46,31 +50,67 @@ def do_detection(image, session):
         draw.text((x_min, y_min), f"{label}")
         draw.text((x_min, y_min - 10), f"{round(conf * 100.0, 0)}")
 
-    return image
+    # return image
+    detection_buffer.put(np.asarray(image))
+
+
+def init_pool(d_buffer):
+    global detection_buffer
+    detection_buffer = d_buffer
+
+
+def show():
+    while args["display"] > 0:
+        frame = detection_buffer.get()
+        if frame is not None:
+            frame = imutils.resize(frame, width=1080)
+            cv2.imshow("WyzeCam", frame)
+        else:
+            break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    return
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-n", "--num-frames", type=int, default=200,
+                help="# of frames to loop over for FPS test")
+ap.add_argument("-d", "--display", type=int, default=-1,
+                help="Whether or not frames should be displayed")
+args = vars(ap.parse_args())
 
 
 def main():
     # Open the RTSP stream
-    vs = VideoStream(rtsp_url, framerate=120).start()
+    vs = VideoStream(rtsp_url).start()
     session = requests.Session()
+    fps = FPS().start()
 
-    while True:
+    detection_buffer = Queue()
+    pool = Pool(19, init_pool, (detection_buffer,))
+    show_future = pool.apply_async(show)
+    futures = []
 
+    # while True:
+    while fps._numFrames < args["num_frames"]:
         frame = vs.read()
         if frame is None:
             continue
 
         image = Image.fromarray(frame)
-        image = do_detection(image, session)
-        frame = np.asarray(image)
+        f = pool.apply_async(do_detection, args=(image, session))
+        futures.append(f)
 
-        frame = imutils.resize(frame, width=1080)
-        cv2.imshow('WyzeCam', frame)
+        fps.update()
 
-        # Wait for the user to hit 'q' for quit
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
+    for f in futures:
+        f.get()
+    detection_buffer.put(None)
+    show_future.get()
+
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
     cv2.destroyAllWindows()
     session.close()
