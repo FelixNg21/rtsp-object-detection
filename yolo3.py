@@ -14,7 +14,7 @@ np.random.seed(42)
 colors = np.random.randint(0, 255, size=(len(classes), 3), dtype='uint8')
 
 # Give the configuration and weight files for the model and load the network.
-net = cv.dnn.readNetFromDarknet('yolov3.cfg', 'yolov3.weights')
+net = cv.dnn.readNetFromDarknet("C:\\Users\Felix\Desktop\Camera\\rtsp-object-detection\yolo-python-rtsp\cfg\yolov3.cfg", 'C:\\Users\Felix\Desktop\Camera\\rtsp-object-detection\yolo-python-rtsp\yolov3.weights')
 net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
 # net.setPreferableTarget(cv.dnn.DNN_TARGET_CPU)
 
