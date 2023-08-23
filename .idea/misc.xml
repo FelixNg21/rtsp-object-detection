@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (Detection)" project-jdk-type="Python SDK" />
+  <component name="Black">
+    <option name="executionMode" value="BINARY" />
+    <option name="pathToExecutable" value="C:\Users\Felix\anaconda3\Scripts\black.exe" />
+    <option name="sdkUUID" value="31abf075-a31e-4b9c-8d6f-a81fe08a21f2" />
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (rtsp-object-detection)" project-jdk-type="Python SDK" />
 </project>
