@@ -110,3 +110,4 @@ yolov3-tiny.weights
 /yolo-python-rtsp/yolov3.weights
 
 .idea
+*.pt
