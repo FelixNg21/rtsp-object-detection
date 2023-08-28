@@ -1,4 +1,5 @@
 # YOLO object detection
+# based on https://opencv-tutorial.readthedocs.io/en/latest/yolo/yolo.html
 import cv2 as cv
 import numpy as np
 import time
@@ -9,7 +10,7 @@ img0 = None
 outputs = None
 
 # Load names of classes and get random colors
-classes = open('coco.names').read().strip().split('\n')
+classes = open('../coco.names').read().strip().split('\n')
 np.random.seed(42)
 colors = np.random.randint(0, 255, size=(len(classes), 3), dtype='uint8')
 
@@ -82,12 +83,6 @@ def post_process(img, outputs, conf):
 
 cv.namedWindow('window')
 load_image('images/horse.jpg')
-# load_image('images/traffic.jpg')
-# load_image('images/zoo.jpg')
-# load_image('images/kitchen.jpg')
-# load_image('images/airport.jpg')
-# load_image('images/tennis.jpg')
-# load_image('images/wine.jpg')
-# load_image('images/bicycle.jpg')
+
 
 cv.destroyAllWindows()
