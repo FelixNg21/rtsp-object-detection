@@ -104,10 +104,10 @@ venv.bak/
 .mypy_cache/
 
 output/
-/yolo-python-rtsp/output.mp4
-yolov3-tiny.weights
-/yolo-python-rtsp/object-detection.jpg
-/yolo-python-rtsp/yolov3.weights
+/OpenCV-yolo-tutorial/output.mp4
+/OpenCV-yolo-tutorial/cfg/
+/OpenCV-yolo-tutorial/object-detection.png
+/OpenCV-yolo-tutorial/yolov3.weights
 
 .idea
 *.pt
