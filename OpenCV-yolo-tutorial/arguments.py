@@ -18,12 +18,12 @@ class Arguments:
     def __init__(self):
         self.input = None
         self.outputfile = None
-        self.outputdir = None
+        self.outputdir = 'OpenCV-yolo-tutorial/output/'
         self.framestart = None
         self.framelimit = None
-        self.config = None
-        self.weights = None
-        self.classes = None
+        self.config = 'OpenCV-yolo-tutorial/cfg/yolov3.cfg'
+        self.weights = 'OpenCV-yolo-tutorial/yolov3.weights'
+        self.classes = 'OpenCV-yolo-tutorial/cfg/yolov3.txt'
         self.invertcolor = None
         self.fpsthrottle = None
         self.saveimages = None
@@ -39,7 +39,7 @@ def arg_parse():
     ap.add_argument('-o', '--outputfile', required=False,
                     help='filename for output video', default='output.mp4')
     ap.add_argument('-od', '--outputdir', required=False,
-                    help='path to output folder', default='output')
+                    help='path to output folder', default='output/')
     ap.add_argument('-fs', '--framestart', required=False, type=check_positive,
                     help='start frame', default=0)
     ap.add_argument('-fl', '--framelimit', required=False, type=check_positive,

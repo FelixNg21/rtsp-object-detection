@@ -4,7 +4,7 @@
 # Website : https://www.github.com/zishor
 ############################################
 
-# python rtsp-detect.py --input rtsp://localhost:8554/driveway --framestart 100 --framelimit 100 --config cfg/yolov3.cfg --weights yolov3.weights --classes cfg/yolov3.txt
+# python rtsp-detect.py --input rtsp://localhost:8554/driveway --framestart 10 --framelimit 50 --config cfg/yolov3.cfg --weights yolov3.weights --classes cfg/yolov3.txt
 
 import os
 import os.path
@@ -87,7 +87,7 @@ def detect(image):
 def processvideo(file):
     cap = cv2.VideoCapture(file)
 
-    writer = imageio.write_frames(args.outputfile, (int(cap.get(3)), int(cap.get(4))))
+    writer = imageio.write_frames(args.outputdir+args.outputfile, (int(cap.get(3)), int(cap.get(4))))
     writer.send(None)
     frame_counter = 0
     while cap.isOpened():
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     if args.input.startswith('rtsp'):
         cap = cv2.VideoCapture(args.input)
-        writer = imageio.write_frames(args.outputfile, (int(cap.get(3)), int(cap.get(4))))
+        writer = imageio.write_frames(args.outputdir+args.outputfile, (int(cap.get(3)), int(cap.get(4))))
         writer.send(None)
         frame_counter = 0
         while True:

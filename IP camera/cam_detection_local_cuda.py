@@ -35,8 +35,7 @@ class ObjectDetection:
         Creates a new video streaming object to extract video frame by frame to make prediction on.
         :return: opencv2 video capture object, with lowest quality frame available for video.
         """
-        stream = VideoStream(self._rtsp_link)
-        return stream
+        return VideoStream(self._rtsp_link)
 
     def load_model(self):
         """
@@ -106,7 +105,7 @@ class ObjectDetection:
         cv2.destroyAllWindows()
         vs.stop()
 
-
-# Create a new object and execute.
-a = ObjectDetection("rtsp://localhost:8554/driveway")
-a()
+if __name__ == "__main__":
+    # Create a new object and execute.
+    a = ObjectDetection("rtsp://localhost:8554/driveway")
+    a()
