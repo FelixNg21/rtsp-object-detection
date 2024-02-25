@@ -1,4 +1,5 @@
 # https://www.kdnuggets.com/2022/08/perform-motion-detection-python.html
+import sys
 
 import pandas as panda
 import cv2
@@ -10,11 +11,31 @@ initialState = None
 motionTrackList = [None, None]
 motionTime = []
 dataFrame = panda.DataFrame(columns=["Initial", "Final"])
-url = "rtsp://localhost:8554/driveway"
-video = VideoStream(url).start()
 
-while True:
-    curr_frame = video.read()
+fourcc = cv2.VideoWriter.fourcc(*'mp4v')
+
+# try:
+#     url = "rtsp://localhost:8554/driveway"
+#     video = VideoStream(url).start()
+#     curr_frame = video.read()
+# except cv2.error:
+#     video_path = "/test_footage.mp4"
+#     video = cv2.VideoCapture(video_path)
+#     check, curr_frame = video.read()
+
+video_path = "test_footage.mp4"
+video = cv2.VideoCapture(video_path)
+frame_width = int(video.get(3))
+frame_height = int(video.get(4))
+frame_size = (frame_width,frame_height)
+record = False
+fps= video.get(cv2.CAP_PROP_FPS)
+spf = int(1/fps * 1000)
+
+
+sta = 0
+while video.isOpened():
+    ret, curr_frame = video.read()
     var_motion = 0
     gray_image = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
     gray_image = cv2.GaussianBlur(gray_image, (21, 21), 0)
@@ -30,11 +51,13 @@ while True:
     (contours, _) = cv2.findContours(threshold_frame.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     for contour in contours:
-        if cv2.contourArea(contour) < 10000:
+        if cv2.contourArea(contour) < 100:
+            record = False
             continue
         var_motion = 1
         (x, y, w, h) = cv2.boundingRect(contour)
         cv2.rectangle(curr_frame, (x, y), (x+w, y+h), (0, 255, 0), 3)
+        record = True
 
     motionTrackList.append(var_motion)
     motionTrackList = motionTrackList[-2:]
@@ -49,19 +72,25 @@ while True:
     cv2.imshow("Difference Frame", diff_frame)
     cv2.imshow("Threshold Frame", threshold_frame)
     cv2.imshow("Color Frame", curr_frame)
-    waitKey = cv2.waitKey(1)
+    waitKey = cv2.waitKey(delay=spf)
+
+    if record:
+        try:
+            ts = time.time()
+            st = datetime.fromtimestamp(ts).strftime("%Y.%m.%d_%H-%M")
+            if sta != st:
+                filename = 'video-' + st + '.mp4'
+                out = cv2.VideoWriter(filename, fourcc, fps, frame_size)
+                sta = st
+            out.write(curr_frame)
+        except Exception as e:
+            print(f'Error on line {sys.exc_info()[-1].tb_lineno}', type(e).__name__, e)
+
 
     if waitKey == ord('q'):
         if var_motion == 1:
             motionTime.append(datetime.now())
         break
-
-# At last we are adding the time of motion or var_motion inside the data frame
-for a in range(0, len(motionTime), 2):
-    dataFrame = dataFrame.append({"Initial": time[a], "Final": motionTime[a + 1]}, ignore_index=True)
-
-# To record all the movements, creating a CSV file
-dataFrame.to_csv("EachMovement.csv")
 
 # Releasing the video
 video.release()
