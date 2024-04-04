@@ -54,7 +54,6 @@ class MotionDetector:
         Returns:
             None
         """
-        print("Recording...")
         now = datetime.datetime.now()
         now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
         dir_structure = now.strftime("%Y/%m/%d")
@@ -76,7 +75,6 @@ class MotionDetector:
         Returns:
             None
         """
-        print("Stopped recording...")
         self.recording = False
         self.video_writer.release()
         self.motion_stop_time = None
@@ -93,7 +91,6 @@ class MotionDetector:
         Returns:
             list: The updated movement history of the tracked object.
         """
-        print(f"Tracking {track_id}...")
         # Store tracking history
         track = self.track_history[track_id]
         current_position = (int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2))
@@ -130,7 +127,6 @@ class MotionDetector:
                     self.plot_tracks(track, track_id, cls, frame)
 
     def plot_tracks(self, track, track_id, cls, frame):
-        print("Plotting tracks...")
         prev_center = self.track_history[track_id][-2]
         current_center = self.track_history[track_id][-1]
         displacement = np.sqrt(
@@ -181,8 +177,8 @@ class MotionDetector:
 
 # Usage
 if __name__ == "__main__":
-    # model_path = "yolov8s.pt"
-    model_path = "../runs/detect/train/weights/best.pt"
+    model_path = "yolov8s.pt"
+    # model_path = "../runs/detect/train/weights/best.pt"
     movement_threshold = 20
     delay_time = 10
     url = "rtsp://localhost:8554/driveway"
