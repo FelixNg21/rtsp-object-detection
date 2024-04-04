@@ -1,5 +1,8 @@
 # adapted from: https://colab.research.google.com/github/ultralytics/ultralytics/blob/main/examples/object_tracking.ipynb
+
 import datetime
+import os
+import threading
 import time
 
 import cv2
@@ -9,10 +12,12 @@ from ultralytics.utils.plotting import Annotator, colors
 
 from collections import defaultdict
 
+import file_manager
+
 
 class MotionDetector:
 
-    def __init__(self, rtsp_url, movement_threshold, delay_time):
+    def __init__(self, rtsp_url, movement_threshold, delay_time, model_path="yolov8n.pt", file_manager=None, cleanup_interval=86400):
         """
         Args:
             rtsp_url (str): The RTSP URL of the IP camera stream.
@@ -23,8 +28,8 @@ class MotionDetector:
             None
         """
         self.track_history = defaultdict(lambda: [])
-        self.model = YOLO("yolov8n.pt")
-        self.names = self.model.model.names
+        self.model = YOLO(model_path)
+        self.names = self.model.names
 
         self.cap = cv2.VideoCapture(rtsp_url)
         assert self.cap.isOpened(), "Error reading video stream"
@@ -39,6 +44,9 @@ class MotionDetector:
         self.motion_stop_time = None
         self.delay_time = delay_time
 
+        self.file_manager = file_manager
+        self.cleanup_interval = cleanup_interval
+
     def start_recording(self):
         """
         Starts recording the video stream from the IP camera.
@@ -46,9 +54,14 @@ class MotionDetector:
         Returns:
             None
         """
+        print("Recording...")
         now = datetime.datetime.now()
         now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"{now_str}.mp4"
+        dir_structure = now.strftime("%Y/%m/%d")
+
+        filename = f"videos/{dir_structure}/{now_str}.mp4"
+
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         self.video_writer = cv2.VideoWriter(filename,
                                             cv2.VideoWriter_fourcc(*'mp4v'),
                                             self.fps,
@@ -63,6 +76,7 @@ class MotionDetector:
         Returns:
             None
         """
+        print("Stopped recording...")
         self.recording = False
         self.video_writer.release()
         self.motion_stop_time = None
@@ -79,6 +93,7 @@ class MotionDetector:
         Returns:
             list: The updated movement history of the tracked object.
         """
+        print(f"Tracking {track_id}...")
         # Store tracking history
         track = self.track_history[track_id]
         current_position = (int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2))
@@ -99,6 +114,7 @@ class MotionDetector:
         if results[0].boxes.id is not None:
             # Extract prediction results
             clss = results[0].boxes.cls.cpu().tolist()
+            print(clss)
             track_ids = results[0].boxes.id.int().cpu().tolist()
 
             # Annotator Init
@@ -114,6 +130,7 @@ class MotionDetector:
                     self.plot_tracks(track, track_id, cls, frame)
 
     def plot_tracks(self, track, track_id, cls, frame):
+        print("Plotting tracks...")
         prev_center = self.track_history[track_id][-2]
         current_center = self.track_history[track_id][-1]
         displacement = np.sqrt(
@@ -150,16 +167,31 @@ class MotionDetector:
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
-        if self.recording:
-            self.video_writer.release()
-
         self.cap.release()
         cv2.destroyAllWindows()
+
+    def start_cleanup_thread(self):
+        cleanup_thread = threading.Timer(self.cleanup_interval, self.run_cleanup)
+        cleanup_thread.start()
+
+    def run_cleanup(self):
+        self.file_manager.cleanup_files()
+        self.start_cleanup_thread()
 
 
 # Usage
 if __name__ == "__main__":
+    # model_path = "yolov8s.pt"
+    model_path = "../runs/detect/train/weights/best.pt"
     movement_threshold = 20
     delay_time = 10
-    motion_detector = MotionDetector("rtsp://localhost:8554/driveway", movement_threshold, delay_time)
+    url = "rtsp://localhost:8554/driveway"
+    cleanup_interval = 86400  # 24 hours
+
+    # Clean up video files older than 7 days or exceeding 1 GB
+    video_dir = "videos"
+    days_threshold = 7
+    file_manager = file_manager.FileManager(video_dir, days_threshold)
+
+    motion_detector = MotionDetector(url, movement_threshold, delay_time, model_path, file_manager, cleanup_interval)
     motion_detector.run()

@@ -14,6 +14,7 @@ import imageio_ffmpeg as imageio
 import datetime
 import arguments
 
+
 def get_output_layers(nnet):
     layer_names = nnet.getLayerNames()
     output_layers = [layer_names[i - 1] for i in nnet.getUnconnectedOutLayers()]
@@ -76,7 +77,8 @@ def detect(image):
             (x, y) = (boxes[i][0], boxes[i][1])
             (w, h) = (boxes[i][2], boxes[i][3])
             if args.saveimages:
-                save_bounded_image(image.copy(), class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
+                save_bounded_image(image.copy(), class_ids[i], confidences[i], round(x), round(y), round(x + w),
+                                   round(y + h))
             draw_prediction(image, class_ids[i], confidences[i], round(x), round(y), round(x + w), round(y + h))
 
     if args.invertcolor:
@@ -87,21 +89,20 @@ def detect(image):
 def processvideo(file):
     cap = cv2.VideoCapture(file)
 
-    writer = imageio.write_frames(args.outputdir+args.outputfile, (int(cap.get(3)), int(cap.get(4))))
+    writer = imageio.write_frames(args.outputdir + args.outputfile, (int(cap.get(3)), int(cap.get(4))))
     writer.send(None)
     frame_counter = 0
     while cap.isOpened():
         frame_counter = frame_counter + 1
         ret, frame = cap.read()
-        print('Detecting objects in frame ' + str(frame_counter))
-        if ret == True:
-            if not frame is None:
-                image = detect(frame)
-                writer.send(image)
-            else:
-                print('Frame error in frame ' + str(frame_counter))
-        else:
+        print(f'Detecting objects in frame {str(frame_counter)}')
+        if not ret:
             break
+        if frame is not None:
+            image = detect(frame)
+            writer.send(image)
+        else:
+            print(f'Frame error in frame {str(frame_counter)}')
     cap.release()
     writer.close()
 
@@ -119,7 +120,7 @@ if __name__ == "__main__":
 
     if args.input.startswith('rtsp'):
         cap = cv2.VideoCapture(args.input)
-        writer = imageio.write_frames(args.outputdir+args.outputfile, (int(cap.get(3)), int(cap.get(4))))
+        writer = imageio.write_frames(args.outputdir + args.outputfile, (int(cap.get(3)), int(cap.get(4))))
         writer.send(None)
         frame_counter = 0
         while True:
@@ -130,21 +131,20 @@ if __name__ == "__main__":
             if frame_counter % int(args.fpsthrottle) == 0:
                 ret, frame = cap.read()
                 if ret and frame_counter >= int(args.framestart):
-                    print('Detecting objects in frame ' + str(frame_counter))
+                    print(f'Detecting objects in frame {str(frame_counter)}')
                     frame = detect(frame)
                     if int(args.framelimit) > 0:
                         writer.send(frame)
                 else:
-                    print('Skipping frame ' + str(frame_counter))
+                    print(f'Skipping frame {str(frame_counter)}')
             else:
-                print('FPS throttling. Skipping frame ' + str(frame_counter))
+                print(f'FPS throttling. Skipping frame {str(frame_counter)}')
             frame_counter = frame_counter + 1
 
+    elif os.path.isdir(args.input):
+        for dirpath, dirnames, filenames in os.walk(args.input):
+            for filename in [f for f in filenames if f.endswith(".mp4")]:
+                print(f'Processing video {os.path.join(dirpath, filename)}')
+                processvideo(os.path.join(dirpath, filename))
     else:
-        if os.path.isdir(args.input):
-            for dirpath, dirnames, filenames in os.walk(args.input):
-                for filename in [f for f in filenames if f.endswith(".mp4")]:
-                    print('Processing video ' + os.path.join(dirpath, filename))
-                    processvideo(os.path.join(dirpath, filename))
-        else:
-            processvideo(os.path.join(args.input))
+        processvideo(os.path.join(args.input))
