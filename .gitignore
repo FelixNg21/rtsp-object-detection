@@ -108,3 +108,6 @@ output/
 .idea
 *.pt
 /OpenCV-yolo-tutorial/
+/videos/
+*.avi
+/IP camera/videos/
