@@ -1,0 +1,34 @@
+services:
+    wyze-bridge:
+        container_name: wyze-bridge
+        restart: unless-stopped
+        image: mrlt8/wyze-bridge:latest
+        ports:
+            - 1935:1935 # RTMP
+            - 8554:8554 # RTSP
+            - 8888:8888 # HLS
+            - 8889:8889 #WebRTC
+            - 8189:8189/udp # WebRTC/ICE
+            - 5001:5000 # WEB-UI
+        environment:
+            - WYZE_EMAIL= # your wyze account email
+            - WYZE_PASSWORD= # your wyze account password
+            # OPTIONAL API ID and KEY to skip authentication process
+            - API_ID= # your wyze API id
+            - API_KEY= # your wyze API key
+            - ROTATE_DOOR=True
+        networks:
+            - wyze-bridge-network
+    detection:
+        container_name: wyze-detection
+        restart: unless-stopped
+        image: felixng2/wyze-cam-detection:latest
+        volumes:
+            - #path to local directory:/app/videos # set first half to your local path
+        networks:
+            - wyze-bridge-network
+        depends_on:
+            - wyze-bridge
+networks:
+    wyze-bridge-network:
+
