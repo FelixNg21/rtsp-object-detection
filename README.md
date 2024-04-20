@@ -9,6 +9,9 @@ The program uses opencv and yolov8 to detect motion in an RTSP stream and create
 A docker-compose.yml has been provided so I can deploy on my other devices. It works fine on my main PC, but I would prefer to have it run 24/7 on an old laptop, but the anemic M3-6y30 4 core CPU runs into issues.
 I'll look into a mini-PC or scraping together some sort of HomeLab server.
 
+# Experiments
+- Attempted to use a substream provided by the docker-wyze-bridge, but it was out of sync with the main stream. This resulted in the bounding boxes being off by several seconds. I had thought that tracking based on a lower resolution image would be less intensive on the CPU.
+
 # Future Work
 - Add continuous recording
 - Handle multiple RTSP streams (will depend on hardware)

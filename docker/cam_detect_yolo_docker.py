@@ -17,7 +17,8 @@ import file_manager
 
 class MotionDetector:
 
-    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, model_path="yolov8n.pt", file_manager=None, cleanup_interval=86400):
+    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, model_path="yolov8n.pt",
+                 file_manager=None, cleanup_interval=86400):
         """
         Args:
             rtsp_url (str): The RTSP URL of the IP camera stream.
@@ -31,10 +32,10 @@ class MotionDetector:
         self.model = YOLO(model_path)
         self.names = self.model.names
 
-        self.cap = cv2.VideoCapture(rtsp_url)
+        self.cap_high_res = cv2.VideoCapture(rtsp_url)
 
-        self.w, self.h, self.fps = (int(self.cap.get(x)) for x in
-                                    (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
+        self.w_high, self.h_high, self.fps = (int(self.cap_high_res.get(x)) for x in
+                                              (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
 
         self.video_dir = video_dir
         self.recording = False
@@ -64,7 +65,7 @@ class MotionDetector:
         self.video_writer = cv2.VideoWriter(filename,
                                             cv2.VideoWriter_fourcc(*'mp4v'),
                                             self.fps,
-                                            (self.w, self.h))
+                                            (self.w_high, self.h_high))
         self.recording = True
         self.motion_stop_time = None
 
@@ -99,12 +100,14 @@ class MotionDetector:
             track.pop(0)
         return track
 
+
     def process_frame(self):
-        success, frame = self.cap.read()
-        if not success:
+        success_high_quality, frame_high_quality = self.cap_high_res.read()
+        cv2.imshow("High Quality", frame_high_quality)
+        if not success_high_quality:
             return None
-        results = self.model.track(frame, persist=True, verbose=False)
-        return frame, results
+        results = self.model.track(frame_high_quality, persist=True, verbose=False)
+        return frame_high_quality, results
 
     def handle_tracking(self, frame, results):
         boxes = results[0].boxes.xyxy.cpu()
@@ -151,7 +154,7 @@ class MotionDetector:
             self.video_writer.write(frame)
 
     def run(self):
-        while self.cap.isOpened():
+        while self.cap_high_res.isOpened():
             frame_results = self.process_frame()
             if frame_results is None:
                 break
@@ -162,7 +165,7 @@ class MotionDetector:
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
-        self.cap.release()
+        self.cap_high_res.release()
         cv2.destroyAllWindows()
 
     def start_cleanup_thread(self):
@@ -180,12 +183,14 @@ if __name__ == "__main__":
     movement_threshold = 20
     delay_time = 10
     url = "rtsp://wyze-bridge:8554/driveway"
+    url_substream = "rtsp://wyze-bridge:8554/driveway-sub"
     cleanup_interval = 86400  # 24 hours
 
-    # Clean up video files older than 7 days or exceeding 1 GB
+    # Clean up video files older than 7 days
     video_dir = "videos"
     days_threshold = 7
     file_manager = file_manager.FileManager(video_dir, days_threshold)
 
-    motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path, file_manager, cleanup_interval)
+    motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
+                                     file_manager, cleanup_interval)
     motion_detector.run()
