@@ -4,7 +4,7 @@ import datetime
 import os
 import threading
 import time
-
+import queue
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -37,6 +37,7 @@ class MotionDetector:
         self.w_high, self.h_high, self.fps = (int(self.cap_high_res.get(x)) for x in
                                               (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
 
+        self.frame_queue = queue.Queue(maxsize=20)
         self.video_dir = video_dir
         self.recording = False
         self.video_writer = None
@@ -100,7 +101,6 @@ class MotionDetector:
             track.pop(0)
         return track
 
-
     def process_frame(self):
         success_high_quality, frame_high_quality = self.cap_high_res.read()
         cv2.imshow("High Quality", frame_high_quality)
@@ -143,7 +143,7 @@ class MotionDetector:
             if not self.recording:
                 self.start_recording()
 
-        elif self.recording:
+        if self.recording:
             if self.motion_stop_time is None:
                 self.motion_stop_time = time.time()
             elif (time.time() - self.motion_stop_time) > self.delay_time:
@@ -153,20 +153,45 @@ class MotionDetector:
         if self.recording:
             self.video_writer.write(frame)
 
+    # def run(self):
+    #     while self.cap_high_res.isOpened():
+    #         frame_results = self.process_frame()
+    #         if frame_results is None:
+    #             break
+    #         frame, results = frame_results
+    #         self.handle_tracking(frame, results)
+    #         self.write_frame(frame)
+    #
+    #         if cv2.waitKey(1) & 0xFF == ord("q"):
+    #             break
+    #
+    #     self.cap_high_res.release()
+    #     cv2.destroyAllWindows()
+
     def run(self):
+        receive_frame_thread = threading.Thread(target=self.receive_frame_loop)
+        process_frame_thread = threading.Thread(target=self.process_frame_loop)
+
+        receive_frame_thread.start()
+        process_frame_thread.start()
+
+        receive_frame_thread.join()
+        process_frame_thread.join()
+
+    def receive_frame_loop(self):
         while self.cap_high_res.isOpened():
-            frame_results = self.process_frame()
-            if frame_results is None:
-                break
-            frame, results = frame_results
-            self.handle_tracking(frame, results)
-            self.write_frame(frame)
-
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-
+            success_high_quality, frame_high_quality = self.cap_high_res.read()
+            if success_high_quality:
+                self.frame_queue.put(frame_high_quality)
         self.cap_high_res.release()
         cv2.destroyAllWindows()
+
+    def process_frame_loop(self):
+        while self.cap_high_res.isOpened():
+            frame_high_quality = self.frame_queue.get()
+            results = self.model.track(frame_high_quality, persist=True, verbose=False)
+            self.handle_tracking(frame_high_quality, results)
+            self.write_frame(frame_high_quality)
 
     def start_cleanup_thread(self):
         cleanup_thread = threading.Timer(self.cleanup_interval, self.run_cleanup)
