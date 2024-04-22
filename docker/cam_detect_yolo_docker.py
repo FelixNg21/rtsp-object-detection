@@ -3,6 +3,7 @@
 import datetime
 import os
 import threading
+import multiprocessing
 import time
 import queue
 import cv2
@@ -169,14 +170,14 @@ class MotionDetector:
     #     cv2.destroyAllWindows()
 
     def run(self):
-        receive_frame_thread = threading.Thread(target=self.receive_frame_loop)
-        process_frame_thread = threading.Thread(target=self.process_frame_loop)
+        receive_frame_process = multiprocessing.Process(target=self.receive_frame_loop)
+        process_frame_process = multiprocessing.Process(target=self.process_frame_loop)
 
-        receive_frame_thread.start()
-        process_frame_thread.start()
+        receive_frame_process.start()
+        process_frame_process.start()
 
-        receive_frame_thread.join()
-        process_frame_thread.join()
+        receive_frame_process.join()
+        process_frame_process.join()
 
     def receive_frame_loop(self):
         while self.cap_high_res.isOpened():

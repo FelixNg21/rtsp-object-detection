@@ -6,12 +6,10 @@ Unfortunately, I use Wyze cameras around the house and over time they have been 
 
 The program uses opencv and yolov8 to detect motion in an RTSP stream and create video clips. It depends on https://github.com/mrlt8/docker-wyze-bridge to provide the RTSP stream.
 
-A docker-compose.yml has been provided so I can deploy on my other devices. It works fine on my main PC, but I would prefer to have it run 24/7 on an old laptop, but the anemic M3-6y30 4 core CPU runs into issues.
-I'll look into a mini-PC or scraping together some sort of HomeLab server.
 
 # Experiments
 - Attempted to use a substream provided by the docker-wyze-bridge, but it was out of sync with the main stream. This resulted in the bounding boxes being off by several seconds. I had thought that tracking based on a lower resolution image would be less intensive on the CPU.
-
+- Implemented multiprocessing to utilize the available CPU cores on an M3-6y30, but now there is an error with "write queue is full". Based on a quick search, it is most likely due to the version of MediaMTX used by wyze-bridge. The next update should bump the version of MediaMTX where the issue should be resolved.
 # Future Work
 - Add continuous recording
 - Handle multiple RTSP streams (will depend on hardware)

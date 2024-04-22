@@ -1,4 +1,4 @@
-docBrotli==1.0.9
+Brotli==1.0.9
 certifi==2023.7.22
 charset-normalizer==3.2.0
 colorama==0.4.6
@@ -36,9 +36,10 @@ seaborn==0.12.2
 six==1.16.0
 smmap==5.0.0
 sympy==1.12
-#torch==2.0.1
-#torchaudio==2.0.2
-#torchvision==0.15.2
+torch==2.0.1
+torchaudio==2.0.2
+torchvision==0.15.2
+--extra-index-url https://download.pytorch.org/whl/cpu
 tqdm==4.66.1
 typing_extensions==4.7.1
 tzdata==2023.3
