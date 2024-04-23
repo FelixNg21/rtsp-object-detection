@@ -36,7 +36,9 @@ class MotionDetector:
 
         self.rtsp_url = rtsp_url
         self.cap = None
-        self.h_high, self.w_high, self.fps = multiprocessing.Value('i', 0), multiprocessing.Value('i', 0), multiprocessing.Value('i', 0)
+        self.h_high, self.w_high, self.fps = multiprocessing.Value('i', 0), multiprocessing.Value('i',
+                                                                                                  0), multiprocessing.Value(
+            'i', 0)
 
         # self.cap_high_res = cv2.VideoCapture(rtsp_url)
         #
@@ -136,7 +138,7 @@ class MotionDetector:
             try:
                 frame_high_quality = self.frame_queue.get()
                 cv2.imshow("frame", frame_high_quality)
-                cv2.waitKey(1)
+                cv2.waitKey(50)
             except self.frame_queue.empty():
                 print("Queue empty")
                 continue
@@ -189,7 +191,6 @@ class MotionDetector:
     def write_frame(self, frame):
         self.video_writer.write(frame)
 
-
     def run2(self):
         while True:
             get_frame_thread = multiprocessing.Process(target=self.get_frame)
@@ -220,3 +221,4 @@ if __name__ == "__main__":
     motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
                                      file_manager)
     motion_detector.run2()
+    cv2.destroyAllWindows()
