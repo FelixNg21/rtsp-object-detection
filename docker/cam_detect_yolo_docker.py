@@ -35,10 +35,9 @@ class MotionDetector:
         self.names = self.model.names
 
         self.rtsp_url = rtsp_url
-        self.cap = None
-        self.h_high, self.w_high, self.fps = multiprocessing.Value('i', 0), multiprocessing.Value('i',
-                                                                                                  0), multiprocessing.Value(
-            'i', 0)
+        self.h_high, self.w_high, self.fps = (multiprocessing.Value('i', 0),
+                                              multiprocessing.Value('i', 0),
+                                              multiprocessing.Value('i', 0))
 
         # self.cap_high_res = cv2.VideoCapture(rtsp_url)
         #
@@ -74,13 +73,12 @@ class MotionDetector:
         dirname = f"{self.video_dir}/{dir_structure}"
         filename = f"{dirname}/{now_str}.mp4"
 
-        os.makedirs(os.path.dirname(dirname), exist_ok=True)
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         print(f"Recording to {filename}")
-        print(f"FPS: {self.fps}, Width: {self.w_high}, Height: {self.h_high}")
         self.video_writer = cv2.VideoWriter(filename,
                                             cv2.VideoWriter_fourcc(*'mp4v'),
-                                            self.fps,
-                                            (self.w_high, self.h_high))
+                                            int(self.fps.value),
+                                            (int(self.w_high.value), int(self.h_high.value)))
         self.recording = True
         self.motion_stop_time = None
 
@@ -116,20 +114,23 @@ class MotionDetector:
         return track
 
     def get_frame(self):
-        self.cap = cv2.VideoCapture(self.rtsp_url)
+        cap = cv2.VideoCapture(self.rtsp_url)
+        assert cap.isOpened(), f"Failed to open {self.rtsp_url}"
 
-        w_high, h_high, fps = (int(self.cap.get(x)) for x in
-                               (cv2.CAP_PROP_FRAME_WIDTH,
-                                cv2.CAP_PROP_FRAME_HEIGHT,
-                                cv2.CAP_PROP_FPS))
-        with self.h_high.get_lock():
-            self.h_high.value = h_high
-        with self.w_high.get_lock():
-            self.w_high.value = w_high
-        with self.fps.get_lock():
-            self.fps.value = fps
-        while self.cap.isOpened():
-            success, frame_high_quality = self.cap.read()
+        if self.h_high.value == 0:
+            w_high, h_high, fps = (int(cap.get(x)) for x in
+                                   (cv2.CAP_PROP_FRAME_WIDTH,
+                                    cv2.CAP_PROP_FRAME_HEIGHT,
+                                    cv2.CAP_PROP_FPS))
+            with self.h_high.get_lock():
+                self.h_high.value = h_high
+            with self.w_high.get_lock():
+                self.w_high.value = w_high
+            with self.fps.get_lock():
+                self.fps.value = fps
+
+        while cap.isOpened():
+            success, frame_high_quality = cap.read()
             if success:
                 self.frame_queue.put(frame_high_quality)
 
@@ -137,9 +138,7 @@ class MotionDetector:
         while True:
             try:
                 frame_high_quality = self.frame_queue.get()
-                cv2.imshow("frame", frame_high_quality)
-                cv2.waitKey(50)
-            except self.frame_queue.empty():
+            except queue.Empty:
                 print("Queue empty")
                 continue
             results = self.model.track(frame_high_quality, persist=True, verbose=False)
@@ -161,25 +160,20 @@ class MotionDetector:
                 annotator.box_label(box, color=colors(int(cls), True), label=self.names[int(cls)])
 
                 # Store tracking history
-                track = self.track_movement_history(track_id, box)
+                self.track_movement_history(track_id, box)
 
                 if len(self.track_history[track_id]) >= 2:
-                    self.plot_tracks(track, track_id, cls, frame)
+                    self.plot_tracks(track_id)
 
-    def plot_tracks(self, track, track_id, cls, frame):
+    def plot_tracks(self, track_id):
         prev_center = self.track_history[track_id][-2]
         current_center = self.track_history[track_id][-1]
         displacement = np.sqrt(
             (prev_center[0] - current_center[0]) ** 2 + (prev_center[1] - current_center[1]) ** 2)
 
         # Plot tracks if sufficient movement
-        if displacement > self.movement_threshold:
-            points = np.array(track, dtype=np.int32).reshape((-1, 1, 2))
-            cv2.circle(frame, (track[-1]), 7, colors(int(cls), True), -1)
-            cv2.polylines(frame, [points], isClosed=False, color=colors(int(cls), True), thickness=2)
-
-            if not self.recording:
-                self.start_recording()
+        if displacement > self.movement_threshold and not self.recording:
+            self.start_recording()
 
         if self.recording:
             if self.motion_stop_time is None:
@@ -192,17 +186,16 @@ class MotionDetector:
         self.video_writer.write(frame)
 
     def run2(self):
-        while True:
-            get_frame_thread = multiprocessing.Process(target=self.get_frame)
-            process_frame_thread = multiprocessing.Process(target=self.process_frame)
+        get_frame_thread = multiprocessing.Process(target=self.get_frame)
+        process_frame_thread = multiprocessing.Process(target=self.process_frame)
 
-            get_frame_thread.start()
-            process_frame_thread.start()
+        process_frame_thread.start()
+        get_frame_thread.start()
 
-            get_frame_thread.join()
-            process_frame_thread.join()
+        get_frame_thread.join()
+        process_frame_thread.join()
 
-            cv2.destroyAllWindows()
+        cv2.destroyAllWindows()
 
 
 # Usage
