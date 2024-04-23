@@ -203,8 +203,8 @@ if __name__ == "__main__":
     model_path = "yolov8s.pt"
     movement_threshold = 20
     delay_time = 20
-    # url = "rtsp://wyze-bridge:8554/driveway"
-    url = "rtsp://localhost:8554/driveway"
+    url = "rtsp://wyze-bridge:8554/driveway"
+    # url = "rtsp://localhost:8554/driveway"
 
     # Clean up video files older than 7 days
     video_dir = "videos"
