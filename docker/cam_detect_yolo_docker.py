@@ -135,7 +135,10 @@ class MotionDetector:
         while True:
             try:
                 frame_high_quality = self.frame_queue.get()
+                cv2.imshow("frame", frame_high_quality)
+                cv2.waitKey(1)
             except self.frame_queue.empty():
+                print("Queue empty")
                 continue
             results = self.model.track(frame_high_quality, persist=True, verbose=False)
             self.handle_tracking(frame_high_quality, results)
@@ -185,8 +188,7 @@ class MotionDetector:
 
     def write_frame(self, frame):
         self.video_writer.write(frame)
-        cv2.imshow("Recording", frame)
-        cv2.waitKey(1)
+
 
     def run2(self):
         while True:
