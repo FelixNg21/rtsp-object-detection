@@ -2,7 +2,6 @@
 
 import datetime
 import os
-import threading
 import multiprocessing
 import time
 import queue
@@ -10,10 +9,10 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, colors
-
 from collections import defaultdict
 
 import file_manager
+
 
 
 class MotionDetector:
@@ -39,14 +38,7 @@ class MotionDetector:
                                               multiprocessing.Value('i', 0),
                                               multiprocessing.Value('i', 0))
 
-        # self.cap_high_res = cv2.VideoCapture(rtsp_url)
-        #
-        # assert self.cap_high_res.isOpened(), f"Failed to open {rtsp_url}"
-        #
-        # self.w_high, self.h_high, self.fps = (int(self.cap_high_res.get(x)) for x in
-        #                                       (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
-
-        self.frame_queue = multiprocessing.Queue()
+        self.frame_queue = multiprocessing.Queue(maxsize=60)
         self.video_dir = video_dir
         self.recording = False
         self.video_writer = None
@@ -91,6 +83,7 @@ class MotionDetector:
         """
         self.recording = False
         self.video_writer.release()
+        self.video_writer = None
         self.motion_stop_time = None
         self.track_history.clear()
 
@@ -109,11 +102,18 @@ class MotionDetector:
         track = self.track_history[track_id]
         current_position = (int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2))
         track.append(current_position)
-        if len(track) > 30:
+        if len(track) > 5:
             track.pop(0)
         return track
 
     def get_frame(self):
+        """
+        Capture frames from an RTSP stream and put them into a frame queue.
+
+        Returns:
+            None
+        """
+        print(os.getpid())
         cap = cv2.VideoCapture(self.rtsp_url)
         assert cap.isOpened(), f"Failed to open {self.rtsp_url}"
 
@@ -135,6 +135,13 @@ class MotionDetector:
                 self.frame_queue.put(frame_high_quality)
 
     def process_frame(self):
+        """
+        Process a frame by tracking objects, handling tracking results, and writing frames if recording.
+
+        Returns:
+            None
+        """
+        print(os.getpid())
         while True:
             try:
                 frame_high_quality = self.frame_queue.get()
@@ -147,6 +154,17 @@ class MotionDetector:
                 self.write_frame(frame_high_quality)
 
     def handle_tracking(self, frame, results):
+        """
+        Handle tracking results by annotating the frame with object labels and colors,
+        storing tracking history, and plotting tracks if sufficient history is available.
+
+        Args:
+            frame: The frame to annotate.
+            results: The tracking results to process.
+
+        Returns:
+            None
+        """
         boxes = results[0].boxes.xyxy.cpu()
         if results[0].boxes.id is not None:
             # Extract prediction results
@@ -166,6 +184,16 @@ class MotionDetector:
                     self.plot_tracks(track_id)
 
     def plot_tracks(self, track_id):
+        """
+        Calculate displacement between previous and current track centers,
+        start or stop recording based on movement threshold and recording status.
+
+        Args:
+            track_id: The identifier of the track to process.
+
+        Returns:
+            None
+        """
         prev_center = self.track_history[track_id][-2]
         current_center = self.track_history[track_id][-1]
         displacement = np.sqrt(
@@ -183,17 +211,34 @@ class MotionDetector:
                 self.stop_recording()
 
     def write_frame(self, frame):
+        """
+        Write a frame to the video writer.
+
+        Args:
+            frame: The frame to write.
+
+        Returns:
+            None
+        """
         self.video_writer.write(frame)
 
-    def run2(self):
+    def run(self):
         get_frame_thread = multiprocessing.Process(target=self.get_frame)
         process_frame_thread = multiprocessing.Process(target=self.process_frame)
 
         process_frame_thread.start()
+        print("Started process_frame_thread")
         get_frame_thread.start()
+        print("Started get_frame_thread")
 
-        get_frame_thread.join()
-        process_frame_thread.join()
+        try:
+            get_frame_thread.join()
+            process_frame_thread.join()
+        except KeyboardInterrupt:
+            get_frame_thread.terminate()
+            process_frame_thread.terminate()
+            get_frame_thread.join()
+            process_frame_thread.join()
 
         cv2.destroyAllWindows()
 
@@ -213,5 +258,5 @@ if __name__ == "__main__":
 
     motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
                                      file_manager)
-    motion_detector.run2()
+    motion_detector.run()
     cv2.destroyAllWindows()
