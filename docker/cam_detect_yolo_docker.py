@@ -39,6 +39,8 @@ class MotionDetector:
                                               multiprocessing.Value('i', 0))
 
         self.frame_queue = multiprocessing.Queue(maxsize=60)
+        self.results_queue = multiprocessing.Queue(maxsize=60)
+
         self.video_dir = video_dir
         self.recording = False
         self.video_writer = None
@@ -148,7 +150,13 @@ class MotionDetector:
             except queue.Empty:
                 print("Queue empty")
                 continue
-            results = self.model.track(frame_high_quality, persist=True, verbose=False)
+            track_process = multiprocessing.Process(target=self.model.track, args=(frame_high_quality,),
+                                                    kwargs={"persist": True, "verbose": False})
+            track_process.start()
+
+            results = self.results_queue.get()
+
+            # results = self.model.track(frame_high_quality, persist=True, verbose=False)
             self.handle_tracking(frame_high_quality, results)
             if self.recording:
                 self.write_frame(frame_high_quality)
