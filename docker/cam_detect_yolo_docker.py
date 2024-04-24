@@ -154,12 +154,12 @@ class MotionDetector:
             except queue.Empty:
                 print("Queue empty")
                 continue
-            track_process = multiprocessing.Process(target=self.track_frame, args=(frame_high_quality,))
-            track_process.start()
+            # track_process = multiprocessing.Process(target=self.track_frame, args=(frame_high_quality,))
+            # track_process.start()
+            #
+            # results = self.results_queue.get()
 
-            results = self.results_queue.get()
-
-            # results = self.model.track(frame_high_quality, persist=True, verbose=False)
+            results = self.model.track(frame_high_quality, persist=True, verbose=False)
             self.handle_tracking(frame_high_quality, results)
             if self.recording:
                 self.write_frame(frame_high_quality)
