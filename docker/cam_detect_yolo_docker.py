@@ -104,7 +104,7 @@ class MotionDetector:
         track = self.track_history[track_id]
         current_position = (int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2))
         track.append(current_position)
-        if len(track) > 5:
+        if len(track) > 30:
             track.pop(0)
         return track
 
@@ -259,8 +259,8 @@ if __name__ == "__main__":
     model_path = "yolov8s.pt"
     movement_threshold = 20
     delay_time = 20
-    url = "rtsp://wyze-bridge:8554/driveway"
-    # url = "rtsp://localhost:8554/driveway"
+    # url = "rtsp://wyze-bridge:8554/driveway"
+    url = "rtsp://localhost:8554/driveway"
 
     # Clean up video files older than 7 days
     video_dir = "videos"
