@@ -136,6 +136,10 @@ class MotionDetector:
             if success:
                 self.frame_queue.put(frame_high_quality)
 
+    def track_frame(self, frame):
+        results = self.model.track(frame, persist=True, verbose=False)
+        self.results_queue.put(results)
+
     def process_frame(self):
         """
         Process a frame by tracking objects, handling tracking results, and writing frames if recording.
@@ -150,8 +154,7 @@ class MotionDetector:
             except queue.Empty:
                 print("Queue empty")
                 continue
-            track_process = multiprocessing.Process(target=self.model.track, args=(frame_high_quality,),
-                                                    kwargs={"persist": True, "verbose": False})
+            track_process = multiprocessing.Process(target=self.track_frame, args=(frame_high_quality,))
             track_process.start()
 
             results = self.results_queue.get()
