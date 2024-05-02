@@ -11,9 +11,7 @@ import numpy as np
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, colors
 from collections import defaultdict
-
 import file_manager
-
 
 
 class MotionDetector:
@@ -39,8 +37,8 @@ class MotionDetector:
                                               multiprocessing.Value('i', 0),
                                               multiprocessing.Value('i', 0))
 
-        self.frame_queue = multiprocessing.Queue(maxsize=60)
-        self.results_queue = multiprocessing.Queue(maxsize=60)
+        self.frame_queue = multiprocessing.Queue(maxsize=120)
+        self.results_queue = multiprocessing.Queue(maxsize=120)
 
         self.video_dir = video_dir
         self.recording = False
@@ -53,23 +51,26 @@ class MotionDetector:
         self.file_manager = file_manager
 
     def run(self):
-        get_frame_thread = multiprocessing.Process(target=self.get_frame)
-        process_frame_thread = multiprocessing.Process(target=self.process_frame)
-        file_manager_thread = threading.Thread(target=self.file_manager.cleanup_files)
+        print("Initializing processes...")
+        get_frame_process = multiprocessing.Process(target=self.get_frame)
+        process_frame_process = multiprocessing.Process(target=self.process_frame)
+        file_manager_process = threading.Thread(target=self.file_manager.cleanup_files)
 
-        process_frame_thread.start()
-        get_frame_thread.start()
-        file_manager_thread.start()
+        print("Starting threads...")
+        process_frame_process.start()
+        get_frame_process.start()
+        file_manager_process.start()
+        print("Started threads")
 
         try:
-            get_frame_thread.join()
-            process_frame_thread.join()
-            file_manager_thread.join()
+            get_frame_process.join()
+            process_frame_process.join()
+            file_manager_process.join()
         except KeyboardInterrupt:
-            get_frame_thread.terminate()
-            process_frame_thread.terminate()
-            get_frame_thread.join()
-            process_frame_thread.join()
+            get_frame_process.terminate()
+            process_frame_process.terminate()
+            get_frame_process.join()
+            process_frame_process.join()
 
         cv2.destroyAllWindows()
 
@@ -95,6 +96,7 @@ class MotionDetector:
             with self.fps.get_lock():
                 self.fps.value = fps
 
+        print("Capturing frames...")
         while cap.isOpened():
             success, frame_high_quality = cap.read()
             if success:
@@ -107,6 +109,7 @@ class MotionDetector:
         Returns:
             None
         """
+        print("Processing frames...")
         while True:
             try:
                 frame_high_quality = self.frame_queue.get()
@@ -248,16 +251,20 @@ class MotionDetector:
 
 # Usage
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
     model_path = "yolov8s.pt"
     movement_threshold = 20
     delay_time = 20
+
     url = "rtsp://wyze-bridge:8554/driveway"
+    # url = "rtsp://localhost:8554/driveway"
+    video_dir = "videos"
 
     # Clean up video files older than 7 days
-    video_dir = "videos"
     days_threshold = 7
     file_manager = file_manager.FileManager(video_dir, days_threshold)
 
+    print("Creating Motion Detector")
     motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
                                      file_manager)
     motion_detector.run()

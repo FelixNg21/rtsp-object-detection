@@ -17,15 +17,22 @@ class FileManager:
             file_path = os.path.join(self.video_dir, file)
             file_creation_time = os.path.getctime(file_path)
             if time.time() - file_creation_time > self.days_threshold * 24 * 3600:
-                files_to_delete.append(file)
-            total_size += os.path.getsize(file_path)
+                if (os.path.isfile(file_path) and os.path.splitext(file_path)[1] in ['.mp4', '.avi', '.mov']) or \
+                        (os.path.isdir(file_path) and os.path.commonpath(
+                            [self.video_dir, file_path]) != self.video_dir):
+                    files_to_delete.append(file)
+                total_size += os.path.getsize(file_path)
 
         # Delete files based on space threshold if total size exceeds the threshold
         while files_to_delete:
             file = files_to_delete.pop(0)
             file_path = os.path.join(self.video_dir, file)
             total_size -= os.path.getsize(file_path)
-            os.remove(file_path)
-            print(f"Deleted: {file}")
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"Deleted: {file}")
+            elif os.path.isdir(file_path):
+                os.rmdir(file_path)
+                print(f"Deleted: {file}")
 
         print("Cleanup completed.")
