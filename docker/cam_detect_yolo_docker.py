@@ -217,7 +217,7 @@ class MotionDetector:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         print(f"Recording to {filename}")
         self.video_writer = cv2.VideoWriter(filename,
-                                            cv2.VideoWriter_fourcc(*'mp4v'),
+                                            cv2.VideoWriter_fourcc(*'H264'),
                                             int(self.fps.value),
                                             (int(self.w_high.value), int(self.h_high.value)))
         self.recording = True
