@@ -15,6 +15,7 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, colors
 from collections import defaultdict
 import file_manager
+import config
 
 
 def track_history_default():
@@ -277,7 +278,8 @@ if __name__ == "__main__":
     movement_threshold = 20
     delay_time = 20
 
-    url = "rtsp://wyze-bridge:8554/driveway"
+    # url = "rtsp://wyze-bridge:8554/driveway"
+    url = config.RTSP_URL + config.RTSP_CAM_NAME[0]
     # url = "rtsp://localhost:8554/driveway"
     video_dir = "videos"
 
