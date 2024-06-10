@@ -1,7 +1,6 @@
 # adapted from: https://colab.research.google.com/github/ultralytics/ultralytics/blob/main/examples/object_tracking.ipynb
 
 import datetime
-import signal
 import sys
 import os
 import multiprocessing
@@ -61,6 +60,14 @@ class MotionDetector:
         signal.signal(signal.SIGTERM, self.signal_handler)
 
     def run(self):
+        """
+        Runs the camera object detection process.
+
+        Initializes processes for getting frames, processing frames, and cleaning up files.
+        Starts threads for processing frames, getting frames, and cleaning up files.
+        Terminates processes on KeyboardInterrupt and closes OpenCV windows.
+        """
+
         print("Initializing processes...")
         get_frame_process = multiprocessing.Process(target=self.get_frame)
         process_frame_process = multiprocessing.Process(target=self.process_frame)
@@ -255,7 +262,7 @@ class MotionDetector:
         """
         self.video_writer.write(frame)
 
-    def signal_handler(self, signum, frame):
+    def signal_handler(self, signum):
         print("Shutting down")
         self.cleanup()
         sys.exit()
@@ -278,7 +285,6 @@ if __name__ == "__main__":
     delay_time = 20
 
     url = "rtsp://wyze-bridge:8554/driveway"
-    # url = "rtsp://localhost:8554/driveway"
     video_dir = "videos"
 
     # Clean up video files older than 7 days
