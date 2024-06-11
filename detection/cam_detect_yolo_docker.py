@@ -9,6 +9,8 @@ import signal
 import threading
 import time
 import queue
+import zoneinfo
+
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -224,16 +226,15 @@ class MotionDetector:
         Returns:
             None
         """
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(tz=zoneinfo.ZoneInfo("America/Vancouver"))
         now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
         dir_structure = now.strftime("%Y/%m/%d")
         dirname = f"{self.video_dir}/{dir_structure}"
-        filename = f"{dirname}/{now_str}.mkv"
+        filename = f"{dirname}/{now_str}.mp4"
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        print(f"Recording to {filename}")
         self.video_writer = cv2.VideoWriter(filename,
-                                            cv2.VideoWriter_fourcc(*"avc1"),
+                                            cv2.VideoWriter_fourcc(*"mp4v"),
                                             int(self.fps.value),
                                             (int(self.w_high.value), int(self.h_high.value)))
         self.recording = True
@@ -264,7 +265,7 @@ class MotionDetector:
         """
         self.video_writer.write(frame)
 
-    def signal_handler(self, signum):
+    def signal_handler(self, signum, frame):
         print("Shutting down")
         self.cleanup()
         sys.exit()
@@ -284,11 +285,9 @@ if __name__ == "__main__":
     multiprocessing.set_start_method('spawn')
     model_path = "yolov8s.pt"
     movement_threshold = 20
-    delay_time = 20
+    delay_time = 10
 
-    # url = "rtsp://wyze-bridge:8554/driveway"
     url = config.RTSP_URL + config.RTSP_CAM_NAME[0]
-    # url = "rtsp://localhost:8554/driveway"
     video_dir = "videos"
 
     # Clean up video files older than 7 days
