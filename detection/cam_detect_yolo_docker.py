@@ -1,7 +1,6 @@
 # adapted from: https://colab.research.google.com/github/ultralytics/ultralytics/blob/main/examples/object_tracking.ipynb
 
 import datetime
-import signal
 import sys
 import os
 import multiprocessing
@@ -48,7 +47,6 @@ class MotionDetector:
                                               multiprocessing.Value('i', 0))
 
         self.frame_queue = multiprocessing.Queue(maxsize=120)
-        self.results_queue = multiprocessing.Queue(maxsize=120)
 
         self.video_dir = video_dir
         self.recording = False
@@ -73,15 +71,13 @@ class MotionDetector:
         """
 
         print("Initializing processes...")
-        get_frame_process = multiprocessing.Process(target=self.get_frame)
-        process_frame_process = multiprocessing.Process(target=self.process_frame)
-        file_manager_process = threading.Thread(target=self.file_manager.cleanup_files)
+        get_frame_process = multiprocessing.Process(target=self.get_frame, daemon=True)
+        process_frame_process = multiprocessing.Process(target=self.process_frame, daemon=True)
+        file_manager_process = threading.Thread(target=self.file_manager.cleanup_files, daemon=True)
 
-        print("Starting threads...")
         process_frame_process.start()
         get_frame_process.start()
         file_manager_process.start()
-        print("Started threads")
 
         try:
             get_frame_process.join()
@@ -117,7 +113,6 @@ class MotionDetector:
             with self.fps.get_lock():
                 self.fps.value = fps
 
-        print("Capturing frames...")
         while cap.isOpened():
             success, frame_high_quality = cap.read()
             if success:
@@ -266,11 +261,17 @@ class MotionDetector:
         self.video_writer.write(frame)
 
     def signal_handler(self, signum, frame):
+        """
+        Signal handler for SIGTERM.
+        """
         print("Shutting down")
         self.cleanup()
         sys.exit()
 
     def cleanup(self):
+        """
+        Clean up the camera object detection process.
+        """
         if self.recording:
             self.stop_recording()
 
@@ -283,7 +284,7 @@ class MotionDetector:
 # Usage
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn')
-    model_path = "yolov8s.pt"
+    model_path = "yolov8n.pt"
     movement_threshold = 20
     delay_time = 10
 
@@ -297,5 +298,7 @@ if __name__ == "__main__":
     print("Creating Motion Detector")
     motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
                                      file_manager)
+
     motion_detector.run()
+
     cv2.destroyAllWindows()
