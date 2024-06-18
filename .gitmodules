@@ -1,0 +1,3 @@
+[submodule "train/yolov10"]
+	path = train/yolov10
+	url = https://github.com/THU-MIG/yolov10.git

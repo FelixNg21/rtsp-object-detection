@@ -9,6 +9,7 @@ import threading
 import time
 import queue
 import zoneinfo
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
@@ -18,14 +19,13 @@ from collections import defaultdict
 import file_manager
 import config
 
-
 def track_history_default():
     return []
 
 
 class MotionDetector:
 
-    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, model_path="yolov8n.pt",
+    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, model_name="yolov8n.pt",
                  file_manager=None):
         """
         Args:
@@ -38,8 +38,9 @@ class MotionDetector:
         """
         self.cap = None
         self.track_history = defaultdict(track_history_default)
-        self.model = YOLO(model_path)
+        self.model = YOLO(model_name)
         self.names = self.model.names
+        self.model_name = model_name
 
         self.rtsp_url = rtsp_url
         self.h_high, self.w_high, self.fps = (multiprocessing.Value('i', 0),
@@ -126,17 +127,45 @@ class MotionDetector:
             None
         """
         print("Processing frames...")
-        while True:
-            try:
-                frame_high_quality = self.frame_queue.get()
-            except queue.Empty:
-                print("Queue empty")
-                continue
+        # New
+        with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
+            while True:
+                try:
+                    frame_high_quality = self.frame_queue.get()  # Added timeout for safety
+                    executor.submit(self.process_single_frame, frame_high_quality)
+                except queue.Empty:
+                    print("Queue empty")
+                    continue
 
-            results = self.model.track(frame_high_quality, persist=True, verbose=False)
-            self.handle_tracking(frame_high_quality, results)
-            if self.recording:
-                self.write_frame(frame_high_quality)
+        # Old
+        # while True:
+        #     try:
+        #         start_time = time.time()
+        #         frame_high_quality = self.frame_queue.get()
+        #         results = self.model.track(frame_high_quality, persist=True, verbose=False)
+        #         self.handle_tracking(frame_high_quality, results)
+        #         if self.recording:
+        #             self.write_frame(frame_high_quality)
+        #         print(f"Frame Processing Time: {time.time() - start_time} seconds")
+        #     except queue.Empty:
+        #         print("Queue empty")
+        #         continue
+
+    def process_single_frame(self, frame_high_quality):
+        """
+        Process a single frame by tracking objects, handling tracking results, and writing frames if recording.
+
+        Args:
+            frame_high_quality: The high-quality frame to process.
+
+        Returns:
+            None
+        """
+        model = YOLO(self.model_name)
+        results = model.track(frame_high_quality, persist=True, verbose=False)
+        self.handle_tracking(frame_high_quality, results)
+        if self.recording:
+            self.write_frame(frame_high_quality)
 
     def handle_tracking(self, frame, results):
         """
@@ -284,7 +313,7 @@ class MotionDetector:
 # Usage
 if __name__ == "__main__":
     multiprocessing.set_start_method('spawn')
-    model_path = "yolov8n.pt"
+    model_name = config.MODEL_NAME
     movement_threshold = 20
     delay_time = 10
 
@@ -296,7 +325,7 @@ if __name__ == "__main__":
     file_manager = file_manager.FileManager(video_dir, days_threshold)
 
     print("Creating Motion Detector")
-    motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_path,
+    motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_name,
                                      file_manager)
 
     motion_detector.run()
