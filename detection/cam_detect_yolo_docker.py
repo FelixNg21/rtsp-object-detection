@@ -9,6 +9,7 @@ import threading
 import time
 import queue
 import zoneinfo
+import heapq
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
@@ -18,6 +19,7 @@ from ultralytics.utils.plotting import Annotator, colors
 from collections import defaultdict
 import file_manager
 import config
+
 
 def track_history_default():
     return []
@@ -47,7 +49,7 @@ class MotionDetector:
                                               multiprocessing.Value('i', 0),
                                               multiprocessing.Value('i', 0))
 
-        self.frame_queue = multiprocessing.Queue(maxsize=120)
+        self.frame_queue = queue.Queue(maxsize=120)
 
         self.video_dir = video_dir
         self.recording = False
@@ -58,6 +60,8 @@ class MotionDetector:
         self.delay_time = delay_time
 
         self.file_manager = file_manager
+
+        self.lock = threading.Lock()
 
         # Register the signal handler
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -72,23 +76,32 @@ class MotionDetector:
         """
 
         print("Initializing processes...")
-        get_frame_process = multiprocessing.Process(target=self.get_frame, daemon=True)
-        process_frame_process = multiprocessing.Process(target=self.process_frame, daemon=True)
-        file_manager_process = threading.Thread(target=self.file_manager.cleanup_files, daemon=True)
+        # get_frame_process = multiprocessing.Process(target=self.get_frame, daemon=True)
+        # process_frame_process = multiprocessing.Process(target=self.process_frame, daemon=True)
+        # file_manager_process = threading.Thread(target=self.file_manager.cleanup_files, daemon=True)
 
-        process_frame_process.start()
-        get_frame_process.start()
-        file_manager_process.start()
+        # process_frame_process.start()
+        # get_frame_process.start()
+        # file_manager_process.start()
+        self.get_frame()
+        file_manager_thread = threading.Thread(target=self.file_manager.cleanup_files)
+
+        file_manager_thread.start()
+        self.process_frame()
 
         try:
-            get_frame_process.join()
-            process_frame_process.join()
-            file_manager_process.join()
+            file_manager_thread.join()
         except KeyboardInterrupt:
-            get_frame_process.terminate()
-            process_frame_process.terminate()
-            get_frame_process.join()
-            process_frame_process.join()
+            file_manager_thread.join()
+        # try:
+        #     get_frame_process.join()
+        #     process_frame_process.join()
+        #     file_manager_process.join()
+        # except KeyboardInterrupt:
+        #     get_frame_process.terminate()
+        #     process_frame_process.terminate()
+        #     get_frame_process.join()
+        #     process_frame_process.join()
 
         cv2.destroyAllWindows()
 
@@ -99,7 +112,12 @@ class MotionDetector:
         Returns:
             None
         """
-        cap = cv2.VideoCapture(self.rtsp_url)
+        try:
+            cap = cv2.VideoCapture(self.rtsp_url)
+        except Exception as e:
+            print(f"Failed to open {self.rtsp_url}")
+            print(e)
+            return
         assert cap.isOpened(), f"Failed to open {self.rtsp_url}"
 
         if self.h_high.value == 0:
@@ -126,6 +144,7 @@ class MotionDetector:
         Returns:
             None
         """
+        self.lock = threading.Lock()
         print("Processing frames...")
         # New
         with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
@@ -257,10 +276,11 @@ class MotionDetector:
         filename = f"{dirname}/{now_str}.mp4"
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        self.video_writer = cv2.VideoWriter(filename,
-                                            cv2.VideoWriter_fourcc(*"mp4v"),
-                                            int(self.fps.value),
-                                            (int(self.w_high.value), int(self.h_high.value)))
+        if self.video_writer is None:
+            self.video_writer = cv2.VideoWriter(filename,
+                                                cv2.VideoWriter_fourcc(*"mp4v"),
+                                                int(self.fps.value),
+                                                (int(self.w_high.value), int(self.h_high.value)))
         self.recording = True
         self.motion_stop_time = None
 
@@ -287,7 +307,8 @@ class MotionDetector:
         Returns:
             None
         """
-        self.video_writer.write(frame)
+        with self.lock:
+            self.video_writer.write(frame)
 
     def signal_handler(self, signum, frame):
         """
