@@ -1,5 +1,3 @@
-# adapted from: https://colab.research.google.com/github/ultralytics/ultralytics/blob/main/examples/object_tracking.ipynb
-
 import datetime
 import sys
 import os
@@ -20,24 +18,11 @@ from collections import defaultdict
 import file_manager
 import config
 
-
 def track_history_default():
     return []
 
-
 class MotionDetector:
-
-    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, model_name="yolov8n.pt",
-                 file_manager=None):
-        """
-        Args:
-            rtsp_url (str): The RTSP URL of the IP camera stream.
-            movement_threshold (int): The threshold for detecting movement in consecutive frames.
-            delay_time (int): The delay time in seconds before ending recording.
-
-        Returns:
-            None
-        """
+    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, file_manager, model_name='yolov8n.pt'):
         self.cap = None
         self.track_history = defaultdict(track_history_default)
         self.model = YOLO(model_name)
@@ -62,48 +47,6 @@ class MotionDetector:
         self.file_manager = file_manager
 
         self.lock = threading.Lock()
-
-        # Register the signal handler
-        signal.signal(signal.SIGTERM, self.signal_handler)
-
-    def run(self):
-        """
-        Runs the camera object detection process.
-
-        Initializes processes for getting frames, processing frames, and cleaning up files.
-        Starts threads for processing frames, getting frames, and cleaning up files.
-        Terminates processes on KeyboardInterrupt and closes OpenCV windows.
-        """
-
-        print("Initializing processes...")
-        # get_frame_process = multiprocessing.Process(target=self.get_frame, daemon=True)
-        # process_frame_process = multiprocessing.Process(target=self.process_frame, daemon=True)
-        # file_manager_process = threading.Thread(target=self.file_manager.cleanup_files, daemon=True)
-
-        # process_frame_process.start()
-        # get_frame_process.start()
-        # file_manager_process.start()
-        self.get_frame()
-        file_manager_thread = threading.Thread(target=self.file_manager.cleanup_files)
-
-        file_manager_thread.start()
-        self.process_frame()
-
-        try:
-            file_manager_thread.join()
-        except KeyboardInterrupt:
-            file_manager_thread.join()
-        # try:
-        #     get_frame_process.join()
-        #     process_frame_process.join()
-        #     file_manager_process.join()
-        # except KeyboardInterrupt:
-        #     get_frame_process.terminate()
-        #     process_frame_process.terminate()
-        #     get_frame_process.join()
-        #     process_frame_process.join()
-
-        cv2.destroyAllWindows()
 
     def get_frame(self):
         """
@@ -211,6 +154,19 @@ class MotionDetector:
                 if len(self.track_history[track_id]) >= 2:
                     self.plot_tracks(track_id)
 
+    def write_frame(self, frame):
+        """
+        Write a frame to the video writer.
+
+        Args:
+            frame: The frame to write.
+
+        Returns:
+            None
+        """
+        with self.lock:
+            self.video_writer.write(frame)
+
     def track_movement_history(self, track_id, box):
         """
         Tracks the movement history of an object identified by track_id.
@@ -256,94 +212,3 @@ class MotionDetector:
             elif (time.time() - self.motion_stop_time) > self.delay_time:
                 print("Stopping recording")
                 self.stop_recording()
-
-    def start_recording(self):
-        """
-        Starts recording the video stream from the IP camera.
-
-        Returns:
-            None
-        """
-        now = datetime.datetime.now(tz=zoneinfo.ZoneInfo("America/Vancouver"))
-        now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-        dir_structure = now.strftime("%Y/%m/%d")
-        dirname = f"{self.video_dir}/{dir_structure}"
-        filename = f"{dirname}/{now_str}.mp4"
-
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        if self.video_writer is None:
-            self.video_writer = cv2.VideoWriter(filename,
-                                                cv2.VideoWriter_fourcc(*"mp4v"),
-                                                int(self.fps.value),
-                                                (int(self.w_high.value), int(self.h_high.value)))
-        self.recording = True
-        self.motion_stop_time = None
-
-    def stop_recording(self):
-        """
-        Stops the recording of the video stream from the IP camera.
-
-        Returns:
-            None
-        """
-        self.recording = False
-        self.video_writer.release()
-        self.video_writer = None
-        self.motion_stop_time = None
-        self.track_history.clear()
-
-    def write_frame(self, frame):
-        """
-        Write a frame to the video writer.
-
-        Args:
-            frame: The frame to write.
-
-        Returns:
-            None
-        """
-        with self.lock:
-            self.video_writer.write(frame)
-
-    def signal_handler(self, signum, frame):
-        """
-        Signal handler for SIGTERM.
-        """
-        print("Shutting down")
-        self.cleanup()
-        sys.exit()
-
-    def cleanup(self):
-        """
-        Clean up the camera object detection process.
-        """
-        if self.recording:
-            self.stop_recording()
-
-        if self.cap is not None:
-            self.cap.release()
-        if self.video_writer is not None:
-            self.video_writer.release()
-
-
-# Usage
-if __name__ == "__main__":
-    multiprocessing.set_start_method('spawn')
-    model_name = config.MODEL_NAME
-    movement_threshold = 20
-    delay_time = 10
-
-    url = config.RTSP_URL + config.RTSP_CAM_NAME[0]
-    video_dir = "videos"
-
-    # Clean up video files older than 7 days
-    days_threshold = 7
-    file_manager = file_manager.FileManager(video_dir, days_threshold)
-
-    print("Creating Motion Detector")
-    motion_detector = MotionDetector(url, movement_threshold, delay_time, video_dir, model_name,
-                                     file_manager)
-
-    motion_detector.run()
-
-    cv2.destroyAllWindows()
