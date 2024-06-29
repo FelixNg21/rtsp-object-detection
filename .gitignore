@@ -9,3 +9,4 @@
 /frontend/portal/.venv/
 /detection/videos/
 .idea/
+/train/

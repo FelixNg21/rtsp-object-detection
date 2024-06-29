@@ -1,13 +1,9 @@
-import datetime
 import sys
-import os
 import multiprocessing
 import signal
 import threading
 import time
 import queue
-import zoneinfo
-import heapq
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
@@ -15,38 +11,44 @@ import numpy as np
 from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, colors
 from collections import defaultdict
-import file_manager
-import config
+
+
 
 def track_history_default():
     return []
 
+
 class MotionDetector:
-    def __init__(self, rtsp_url, movement_threshold, delay_time, video_dir, file_manager, model_name='yolov8n.pt'):
-        self.cap = None
+    def __init__(self, cap, movement_threshold, delay_time, video_writer, model_name='yolov8n.pt'):
+        self.cap = cap
         self.track_history = defaultdict(track_history_default)
         self.model = YOLO(model_name)
         self.names = self.model.names
         self.model_name = model_name
 
-        self.rtsp_url = rtsp_url
-        self.h_high, self.w_high, self.fps = (multiprocessing.Value('i', 0),
-                                              multiprocessing.Value('i', 0),
-                                              multiprocessing.Value('i', 0))
-
         self.frame_queue = queue.Queue(maxsize=120)
 
-        self.video_dir = video_dir
-        self.recording = False
-        self.video_writer = None
+        self.video_writer = video_writer
 
         self.movement_threshold = movement_threshold
         self.motion_stop_time = None
         self.delay_time = delay_time
 
-        self.file_manager = file_manager
+        signal.signal(signal.SIGTERM, self.signal_handler)
 
-        self.lock = threading.Lock()
+    def run(self):
+        """
+        Run the camera object detection process.
+
+        Returns:
+            None
+        """
+        get_frame_thread = threading.Thread(target=self.get_frame)
+
+        get_frame_thread.start()
+        self.process_frame()
+        print("started process frame")
+        get_frame_thread.join()
 
     def get_frame(self):
         """
@@ -55,23 +57,8 @@ class MotionDetector:
         Returns:
             None
         """
-        cap = cv2.VideoCapture(self.rtsp_url)
-        assert cap.isOpened(), f"Failed to open {self.rtsp_url}"
-
-        if self.h_high.value == 0:
-            w_high, h_high, fps = (int(cap.get(x)) for x in
-                                   (cv2.CAP_PROP_FRAME_WIDTH,
-                                    cv2.CAP_PROP_FRAME_HEIGHT,
-                                    cv2.CAP_PROP_FPS))
-            with self.h_high.get_lock():
-                self.h_high.value = h_high
-            with self.w_high.get_lock():
-                self.w_high.value = w_high
-            with self.fps.get_lock():
-                self.fps.value = fps
-
-        while cap.isOpened():
-            success, frame_high_quality = cap.read()
+        while self.cap.isOpened():
+            success, frame_high_quality = self.cap.read()
             if success:
                 self.frame_queue.put(frame_high_quality)
 
@@ -82,31 +69,26 @@ class MotionDetector:
         Returns:
             None
         """
-        self.lock = threading.Lock()
-        print("Processing frames...")
         # New
-        with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
-            while True:
-                try:
-                    frame_high_quality = self.frame_queue.get()  # Added timeout for safety
-                    executor.submit(self.process_single_frame, frame_high_quality)
-                except queue.Empty:
-                    print("Queue empty")
-                    continue
+        # with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
+        #     while True:
+        #         try:
+        #             frame_high_quality = self.frame_queue.get()
+        #             executor.submit(self.process_single_frame, frame_high_quality)
+        #         except queue.Empty:
+        #             print("Queue empty")
+        #             continue
 
         # Old
-        # while True:
-        #     try:
-        #         start_time = time.time()
-        #         frame_high_quality = self.frame_queue.get()
-        #         results = self.model.track(frame_high_quality, persist=True, verbose=False)
-        #         self.handle_tracking(frame_high_quality, results)
-        #         if self.recording:
-        #             self.write_frame(frame_high_quality)
-        #         print(f"Frame Processing Time: {time.time() - start_time} seconds")
-        #     except queue.Empty:
-        #         print("Queue empty")
-        #         continue
+        while self.cap.isOpened():
+            try:
+                frame_high_quality = self.frame_queue.get()
+                self.handle_tracking(frame_high_quality)
+                if self.video_writer.recording:
+                    self.write_frame(frame_high_quality)
+            except queue.Empty:
+                print("Queue empty")
+                continue
 
     def process_single_frame(self, frame_high_quality):
         """
@@ -119,12 +101,12 @@ class MotionDetector:
             None
         """
         model = YOLO(self.model_name)
-        results = model.track(frame_high_quality, persist=True, verbose=False)
-        self.handle_tracking(frame_high_quality, results)
-        if self.recording:
+        # results = model.track(frame_high_quality, persist=True, verbose=False)
+        self.handle_tracking(frame_high_quality)
+        if self.video_writer.recording:
             self.write_frame(frame_high_quality)
 
-    def handle_tracking(self, frame, results):
+    def handle_tracking(self, frame):
         """
         Handle tracking results by annotating the frame with object labels and colors,
         storing tracking history, and plotting tracks if sufficient history is available.
@@ -136,21 +118,16 @@ class MotionDetector:
         Returns:
             None
         """
+        results = self.model.track(frame, persist=True, verbose=False)
+
         boxes = results[0].boxes.xyxy.cpu()
         if results[0].boxes.id is not None:
             # Extract prediction results
             clss = results[0].boxes.cls.cpu().tolist()
             track_ids = results[0].boxes.id.int().cpu().tolist()
 
-            # Annotator Init
-            annotator = Annotator(frame, line_width=2)
-
             for box, cls, track_id in zip(boxes, clss, track_ids):
-                annotator.box_label(box, color=colors(int(cls), True), label=self.names[int(cls)])
-
-                # Store tracking history
                 self.track_movement_history(track_id, box)
-
                 if len(self.track_history[track_id]) >= 2:
                     self.plot_tracks(track_id)
 
@@ -164,8 +141,7 @@ class MotionDetector:
         Returns:
             None
         """
-        with self.lock:
-            self.video_writer.write(frame)
+        self.video_writer.write_frame(frame)
 
     def track_movement_history(self, track_id, box):
         """
@@ -184,7 +160,6 @@ class MotionDetector:
         track.append(current_position)
         if len(track) > 30:
             track.pop(0)
-        return track
 
     def plot_tracks(self, track_id):
         """
@@ -203,12 +178,32 @@ class MotionDetector:
             (prev_center[0] - current_center[0]) ** 2 + (prev_center[1] - current_center[1]) ** 2)
 
         # Plot tracks if sufficient movement
-        if displacement > self.movement_threshold and not self.recording:
-            self.start_recording()
+        if displacement > self.movement_threshold:
+            if not self.video_writer.recording:
+                self.video_writer.start_recording()
+            self.motion_stop_time = time.time()
 
-        if self.recording:
+        if displacement < self.movement_threshold and self.video_writer.recording:
             if self.motion_stop_time is None:
                 self.motion_stop_time = time.time()
             elif (time.time() - self.motion_stop_time) > self.delay_time:
-                print("Stopping recording")
-                self.stop_recording()
+                self.video_writer.stop_recording()
+                self.track_history.clear()
+                self.motion_stop_time = None
+
+    def signal_handler(self, signum, frame):
+        """
+        Signal handler for SIGTERM.
+        """
+        print("Shutting down")
+        self.cleanup()
+        sys.exit()
+
+    def cleanup(self):
+        """
+        Clean up the camera object detection process.
+        """
+
+        if self.cap is not None:
+            self.cap.release()
+        self.video_writer.cleanup()
