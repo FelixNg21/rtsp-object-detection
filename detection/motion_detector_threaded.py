@@ -37,6 +37,7 @@ class MotionDetector:
                                               self.queue_event)
         self.frame_tracker = FrameTracker(cap, self.results_queue, self.video_writer, self.track_movement_history,
                                           self.plot_tracks, self.write_frame, self.track_history, self.queue_event)
+        self.frame_getter = threading.Thread(target=self.get_frame)
 
         self.movement_threshold = movement_threshold
         self.motion_stop_time = None
@@ -51,12 +52,9 @@ class MotionDetector:
         Returns:
             None
         """
-        get_frame_thread = threading.Thread(target=self.get_frame)
-
-        get_frame_thread.start()
+        self.frame_getter.start()
         self.frame_processor.start()
         self.frame_tracker.start()
-        get_frame_thread.join()
 
     def get_frame(self):
         """
@@ -69,20 +67,6 @@ class MotionDetector:
             success, frame_high_quality = self.cap.read()
             if success:
                 self.frame_queue.put(frame_high_quality)
-
-    # def process_frame(self):
-    #     """
-    #     Process a frame by tracking objects, handling tracking results, and writing frames if recording.
-    #
-    #     Returns:
-    #         None
-    #     """
-    #     with ThreadPoolExecutor(max_workers=4) as executor:
-    #         while self.cap.isOpened():
-    #             if not self.frame_queue.empty():
-    #                 frame_high_quality = self.frame_queue.get()
-    #                 future = executor.submit(self.process_single_frame, frame_high_quality)
-    #                 future.add_done_callback(lambda x: self.results_queue.put((frame_high_quality, future.result())))
 
     def process_single_frame(self, frame_high_quality):
         """
@@ -215,4 +199,5 @@ class MotionDetector:
             self.cap.release()
             self.frame_tracker.join()
             self.frame_processor.join()
+            self.frame_getter.join()
         self.video_writer.cleanup()

@@ -1,5 +1,4 @@
 import threading
-import cv2
 import time
 
 
@@ -16,7 +15,18 @@ class FrameTracker(threading.Thread):
         self.track_history = track_history
         self.queue_event = queue_event
 
+
     def run(self):
+        """
+        Runs the frame tracking process continuously.
+
+        Args:
+            self: The instance of the class.
+
+        Returns:
+            None
+        """
+
         while True:
             self.queue_event.wait()
             while not self.results_queue.empty():
@@ -28,6 +38,16 @@ class FrameTracker(threading.Thread):
             self.queue_event.clear()
 
     def handle_tracking(self, results):
+        """
+        Handles the tracking of objects based on detection results.
+
+        Args:
+            results: The detection results to process.
+
+        Returns:
+            None
+        """
+
         boxes = results[0].boxes.xyxy.cpu()
         if results[0].boxes.id is not None:
             clss = results[0].boxes.cls.cpu().tolist()

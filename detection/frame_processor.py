@@ -13,19 +13,11 @@ class FrameProcessor(threading.Thread):
         self.process_single_frame = process_single_frame
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.queue_event = queue_event
-        # New
         self.frame_buffer = {}
         self.sequence_number = 0
         self.buffer_lock = threading.Lock()
 
     def run(self):
-        # while self.cap.isOpened():
-        #     if not self.frame_queue.empty():
-        #         frame_high_quality = self.frame_queue.get()
-        #         future = self.executor.submit(self.process_single_frame, frame_high_quality)
-        #         future.add_done_callback(self.processing_done)
-
-        # New
         while self.cap.isOpened():
             if not self.frame_queue.empty():
                 frame_high_quality = self.frame_queue.get()
@@ -35,11 +27,6 @@ class FrameProcessor(threading.Thread):
                 future.add_done_callback(lambda fut: self.processing_done(fut, seq))
             self.check_and_update_queue()
             time.sleep(0.1)
-
-    # def processing_done(self, future):
-    #     result, frame = future.result()
-    #     self.results_queue.put((result, frame))
-    #     self.queue_event.set()
 
     def processing_done(self, future, sequence):
         result, frame = future.result()
