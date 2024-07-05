@@ -5,6 +5,20 @@ import cv2
 
 
 class VideoWriter:
+    """
+    A class for writing video frames to a video file.
+
+    Initializes the VideoWriter object with the video directory, width, height, and frames per second.
+
+    Args:
+        video_dir: The directory to save the video file.
+        w: The width of the video frames.
+        h: The height of the video frames.
+        fps: The frames per second of the video.
+
+    Returns:
+        None
+    """
     def __init__(self, video_dir, w, h, fps):
         self.video_dir = video_dir
         self.w = w

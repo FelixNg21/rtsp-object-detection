@@ -5,6 +5,22 @@ import time
 
 
 class FrameProcessor(threading.Thread):
+    """
+       A class for processing frames in a video stream.
+
+       Initializes the FrameProcessor object with necessary attributes.
+
+       Args:
+           cap: The video capture object.
+           frame_queue: The queue for storing frames.
+           results_queue: The queue for storing processing results.
+           process_single_frame: Function to process a single frame.
+           queue_event: Event for queue synchronization.
+
+       Returns:
+           None
+    """
+
     def __init__(self, cap, frame_queue, results_queue, process_single_frame, queue_event):
         threading.Thread.__init__(self)
         self.cap = cap
@@ -18,6 +34,15 @@ class FrameProcessor(threading.Thread):
         self.buffer_lock = threading.Lock()
 
     def run(self):
+        """
+        Runs the frame processing continuously.
+
+        Args:
+            self: The instance of the class.
+
+        Returns:
+            None
+        """
         while self.cap.isOpened():
             if not self.frame_queue.empty():
                 frame_high_quality = self.frame_queue.get()
@@ -29,11 +54,30 @@ class FrameProcessor(threading.Thread):
             time.sleep(0.1)
 
     def processing_done(self, future, sequence):
+        """
+        Handles the completion of frame processing.
+
+        Args:
+            future: The result of the processing task.
+            sequence: The sequence number of the frame.
+
+        Returns:
+            None
+        """
         result, frame = future.result()
         with self.buffer_lock:
             self.frame_buffer[sequence] = (result, frame)
 
     def check_and_update_queue(self):
+        """
+        Checks and updates the frame processing queue.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         with self.buffer_lock:
             keys_to_delete = []
             for seq in sorted(self.frame_buffer.keys()):

@@ -3,8 +3,44 @@ import time
 
 
 class FrameTracker(threading.Thread):
+    """
+    A class for tracking frames and objects in a video stream.
+
+    Initializes the FrameTracker object with necessary attributes.
+
+    Args:
+        cap: The video capture object.
+        results_queue: The queue for storing detection results.
+        video_writer: The video writer object.
+        track_movement_history: Function to track movement history.
+        plot_tracks: Function to plot object tracks.
+        write_frame: Function to write frames.
+        track_history: Dictionary to store object tracking history.
+        queue_event: Event for queue synchronization.
+
+    Returns:
+        None
+    """
+
     def __init__(self, cap, results_queue, video_writer, track_movement_history, plot_tracks, write_frame,
-                 track_history, queue_event):
+                     track_history, queue_event):
+        """
+        Initializes the FrameTracker object with necessary attributes.
+
+        Args:
+            cap: The video capture object.
+            results_queue: The queue for storing detection results.
+            video_writer: The video writer object.
+            track_movement_history: Function to track movement history.
+            plot_tracks: Function to plot object tracks.
+            write_frame: Function to write frames.
+            track_history: Dictionary to store object tracking history.
+            queue_event: Event for queue synchronization.
+
+        Returns:
+            None
+        """
+
         threading.Thread.__init__(self)
         self.cap = cap
         self.results_queue = results_queue

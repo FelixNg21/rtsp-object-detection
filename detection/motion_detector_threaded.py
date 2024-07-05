@@ -92,8 +92,6 @@ class MotionDetector:
             results = self.results_queue.get()
             self.handle_tracking(results[1])
             if self.video_writer.recording:
-                cv2.imshow("frame", results[0])
-                cv2.waitKey(1)
                 self.write_frame(results[0])
             else:
                 print("Results queue empty")
