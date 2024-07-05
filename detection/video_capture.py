@@ -12,6 +12,11 @@ class VideoCapture:
             self.cap = cv2.VideoCapture(self.rtsp_url)
             time.sleep(2)
 
+        # video file
+        # self.cap = cv2.VideoCapture(rtsp_url)
+        # if not self.cap.isOpened():
+        #     raise ValueError("Unable to open video source", rtsp_url)
+
         self.h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.fps = int(self.cap.get(cv2.CAP_PROP_FPS))

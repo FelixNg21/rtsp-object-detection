@@ -12,6 +12,8 @@ from ultralytics import YOLO
 from ultralytics.utils.plotting import Annotator, colors
 from collections import defaultdict
 
+from frame_processor import FrameProcessor
+from frame_tracker import FrameTracker
 
 
 def track_history_default():
@@ -26,9 +28,15 @@ class MotionDetector:
         self.names = self.model.names
         self.model_name = model_name
 
-        self.frame_queue = queue.Queue(maxsize=120)
-
+        self.frame_queue = queue.Queue(maxsize=90)
+        self.results_queue = queue.Queue(maxsize=90)
         self.video_writer = video_writer
+
+        self.queue_event = threading.Event()
+        self.frame_processor = FrameProcessor(cap, self.frame_queue, self.results_queue, self.process_single_frame,
+                                              self.queue_event)
+        self.frame_tracker = FrameTracker(cap, self.results_queue, self.video_writer, self.track_movement_history,
+                                          self.plot_tracks, self.write_frame, self.track_history, self.queue_event)
 
         self.movement_threshold = movement_threshold
         self.motion_stop_time = None
@@ -46,8 +54,8 @@ class MotionDetector:
         get_frame_thread = threading.Thread(target=self.get_frame)
 
         get_frame_thread.start()
-        self.process_frame()
-        print("started process frame")
+        self.frame_processor.start()
+        self.frame_tracker.start()
         get_frame_thread.join()
 
     def get_frame(self):
@@ -62,33 +70,19 @@ class MotionDetector:
             if success:
                 self.frame_queue.put(frame_high_quality)
 
-    def process_frame(self):
-        """
-        Process a frame by tracking objects, handling tracking results, and writing frames if recording.
-
-        Returns:
-            None
-        """
-        #New
-        with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
-            while True:
-                try:
-                    frame_high_quality = self.frame_queue.get()
-                    executor.submit(self.process_single_frame, frame_high_quality)
-                except queue.Empty:
-                    print("Queue empty")
-                    continue
-
-        # Old
-        # while self.cap.isOpened():
-        #     try:
-        #         frame_high_quality = self.frame_queue.get()
-        #         self.handle_tracking(frame_high_quality)
-        #         if self.video_writer.recording:
-        #             self.write_frame(frame_high_quality)
-        #     except queue.Empty:
-        #         print("Queue empty")
-        #         continue
+    # def process_frame(self):
+    #     """
+    #     Process a frame by tracking objects, handling tracking results, and writing frames if recording.
+    #
+    #     Returns:
+    #         None
+    #     """
+    #     with ThreadPoolExecutor(max_workers=4) as executor:
+    #         while self.cap.isOpened():
+    #             if not self.frame_queue.empty():
+    #                 frame_high_quality = self.frame_queue.get()
+    #                 future = executor.submit(self.process_single_frame, frame_high_quality)
+    #                 future.add_done_callback(lambda x: self.results_queue.put((frame_high_quality, future.result())))
 
     def process_single_frame(self, frame_high_quality):
         """
@@ -100,13 +94,27 @@ class MotionDetector:
         Returns:
             None
         """
-        # model = YOLO(self.model_name)
-        # results = model.track(frame_high_quality, persist=True, verbose=False)
-        self.handle_tracking(frame_high_quality)
-        if self.video_writer.recording:
-            self.write_frame(frame_high_quality)
+        model = YOLO(self.model_name)
+        return model.track(frame_high_quality, persist=True, verbose=False), frame_high_quality
 
-    def handle_tracking(self, frame):
+    def track_frame(self):
+        """
+        Track the results from the frame queue.
+
+        Returns:
+            None
+        """
+        while not self.results_queue.empty() or self.cap.isOpened():
+            results = self.results_queue.get()
+            self.handle_tracking(results[1])
+            if self.video_writer.recording:
+                cv2.imshow("frame", results[0])
+                cv2.waitKey(1)
+                self.write_frame(results[0])
+            else:
+                print("Results queue empty")
+
+    def handle_tracking(self, results):
         """
         Handle tracking results by annotating the frame with object labels and colors,
         storing tracking history, and plotting tracks if sufficient history is available.
@@ -118,7 +126,6 @@ class MotionDetector:
         Returns:
             None
         """
-        results = self.model.track(frame, persist=True, verbose=False)
 
         boxes = results[0].boxes.xyxy.cpu()
         if results[0].boxes.id is not None:
@@ -206,4 +213,6 @@ class MotionDetector:
 
         if self.cap is not None:
             self.cap.release()
+            self.frame_tracker.join()
+            self.frame_processor.join()
         self.video_writer.cleanup()
