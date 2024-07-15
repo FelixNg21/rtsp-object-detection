@@ -7,7 +7,6 @@ import time
 
 
 if __name__ == "__main__":
-
     # Create Video Capture object
     # url = config.RTSP_URL + config.RTSP_CAM_NAME[0]
     url = "rtsp://localhost:8554/driveway"
@@ -29,7 +28,7 @@ if __name__ == "__main__":
 
     # Create Motion Detector object
     model_name = config.MODEL_NAME
-    movement_threshold = 0.5
+    movement_threshold = config.MOVEMENT_THRESHOLD
     delay_time = 10
     motion_detector = MotionDetector(cap, movement_threshold, delay_time, video_writer, model_name)
 

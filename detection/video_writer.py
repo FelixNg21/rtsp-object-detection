@@ -34,13 +34,8 @@ class VideoWriter:
         """
         if not self.video_writer:
             self.recording = True
-            now = datetime.datetime.now(tz=zoneinfo.ZoneInfo("America/Vancouver"))
-            now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-            dir_structure = now.strftime("%Y/%m/%d")
-            dirname = f"{self.video_dir}/{dir_structure}"
-            filename = f"{dirname}/{now_str}.mp4"
-
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            filename = self._generate_filename()
+            self._create_directory(filename)
             self.video_writer = cv2.VideoWriter(
                 filename,
                 cv2.VideoWriter_fourcc(*'mp4v'),
@@ -48,6 +43,23 @@ class VideoWriter:
                 (self.w, self.h),
             )
             print("Created video_writer")
+
+    def _generate_filename(self):
+        """
+        Generate a filename based on the current date and time.
+        """
+        now = datetime.datetime.now(tz=zoneinfo.ZoneInfo("America/Vancouver"))
+        now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
+        dir_structure = now.strftime("%Y/%m/%d")
+        return f"{self.video_dir}/{dir_structure}/{now_str}.mp4"
+
+    def _create_directory(self, filename):
+        """
+        Create the directory structure for the given filename.
+        """
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
 
     def write_frame(self, frame):
         """
@@ -65,6 +77,7 @@ class VideoWriter:
         self.video_writer.release()
         self.video_writer = None
         self.recording = False
+        print("Stopped recording")
 
     def cleanup(self):
         """

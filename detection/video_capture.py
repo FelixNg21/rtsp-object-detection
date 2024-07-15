@@ -1,5 +1,4 @@
 import cv2
-import time
 
 
 class VideoCapture:
@@ -14,19 +13,14 @@ class VideoCapture:
     Returns:
         None
     """
+
     def __init__(self, rtsp_url):
         self.rtsp_url = rtsp_url
-        self.cap = None
+        self.cap = cv2.VideoCapture(self.rtsp_url)
 
         # Ensure the rtsp stream is up
-        while self.cap is None or not self.cap.isOpened():
-            self.cap = cv2.VideoCapture(self.rtsp_url)
-            time.sleep(2)
-
-        # video file
-        # self.cap = cv2.VideoCapture(rtsp_url)
-        # if not self.cap.isOpened():
-        #     raise ValueError("Unable to open video source", rtsp_url)
+        if not self.cap.isOpened():
+            raise ValueError(f"Unable to open RTSP stream: {self.rtsp_url}")
 
         self.h = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
