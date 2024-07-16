@@ -1,4 +1,4 @@
-# RTSP Object Detection
+# Near Real Time RTSP Object Detection
 
 ## Background
 This project aims to re-enable some of the features that Wyze has moved behind their subscription service.
