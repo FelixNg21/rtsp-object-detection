@@ -1,10 +1,10 @@
+import logging
 import sys
 import signal
 import threading
 import time
 import queue
 
-from ultralytics import YOLO
 from collections import defaultdict, deque
 
 from frame_processor import FrameProcessor
@@ -19,11 +19,9 @@ class MotionDetector:
     def __init__(self, cap, movement_threshold, delay_time, video_writer, model_name):
         self.cap = cap
         self.track_history = defaultdict(track_history_default)
-        # self.model = YOLO(model_name)
-        # self.names = self.model.names
         self.model_name = model_name
-        self.frame_queue = queue.Queue(maxsize=180)
-        self.results_queue = queue.Queue(maxsize=180)
+        self.frame_queue = queue.Queue(maxsize=90)
+        self.results_queue = queue.Queue(maxsize=90)
         self.video_writer = video_writer
 
         self.movement_threshold = movement_threshold
@@ -43,6 +41,8 @@ class MotionDetector:
         self.shutdown_flag = threading.Event()
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
+
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     def run(self):
         """
@@ -72,17 +72,14 @@ class MotionDetector:
                 try:
                     self.frame_queue.put(frame_high_quality, timeout=1)
                 except queue.Full:
-                    print("Frame queue full. Skipping frame.")
+                    logging.warning("Frame queue is full. Skipping frame.")
 
     def write_frame(self, frame):
         """
         Write a frame to the video writer.
 
         Args:
-            frame: The frame to write.
-
-        Returns:
-            None
+            frame: The frame to write to video.
         """
         self.video_writer.write_frame(frame)
 
@@ -116,4 +113,7 @@ class MotionDetector:
 
         if self.cap is not None:
             self.cap.release()
+            self.frame_tracker.join()
+            self.frame_processor.join()
+            self.frame_getter.join()
         self.video_writer.cleanup()

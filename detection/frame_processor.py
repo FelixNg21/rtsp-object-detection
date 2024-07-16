@@ -16,9 +16,6 @@ class FrameProcessor(threading.Thread):
            frame_queue: The queue for storing frames.
            results_queue: The queue for storing processing results.
            queue_event: Event for queue synchronization.
-
-       Returns:
-           None
     """
 
     def __init__(self, cap, frame_queue, results_queue, queue_event, model_name):
@@ -26,13 +23,12 @@ class FrameProcessor(threading.Thread):
         self.cap = cap
         self.frame_queue = frame_queue
         self.results_queue = results_queue
-        self.executor = ThreadPoolExecutor(max_workers=6)
+        self.executor = ThreadPoolExecutor(max_workers=4)
         self.queue_event = queue_event
         self.frame_buffer = {}
         self.sequence_number = 0
         self.model_name = model_name
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.buffer_lock = threading.Lock()
 
     def run(self):
         """
@@ -53,8 +49,6 @@ class FrameProcessor(threading.Thread):
                 future.add_done_callback(lambda fut: self.processing_done(fut, seq))
             self.check_and_update_queue()
             time.sleep(0.001)
-            # self.queue_event.wait()
-            # self.queue_event.clear()
 
     def processing_done(self, future, sequence):
         """
@@ -68,28 +62,17 @@ class FrameProcessor(threading.Thread):
             None
         """
         result, frame = future.result()
-        with self.buffer_lock:
-            self.frame_buffer[sequence] = (result, frame)
+        self.frame_buffer[sequence] = (result, frame)
 
     def check_and_update_queue(self):
         """
         Checks and updates the frame processing queue.
-
-        Args:
-            None
-
-        Returns:
-            None
         """
-        with self.buffer_lock:
-            keys_to_delete = []
-            for seq in sorted(self.frame_buffer.keys()):
-                if seq == min(self.frame_buffer.keys()):  # Ensures sequential order
-                    self.results_queue.put(self.frame_buffer[seq])
-                    self.queue_event.set()
-                    keys_to_delete.append(seq)
-            for key in keys_to_delete:
-                del self.frame_buffer[key]
+        min_seq = min(self.frame_buffer.keys(), default=None)
+        if min_seq is not None:
+            self.results_queue.put(self.frame_buffer[min_seq])
+            self.queue_event.set()
+            del self.frame_buffer[min_seq]
 
     def process_single_frame(self, frame_high_quality):
         """
@@ -97,9 +80,6 @@ class FrameProcessor(threading.Thread):
 
         Args:
             frame_high_quality: The high-quality frame to process.
-
-        Returns:
-            None
         """
         model = YOLO(self.model_name).to(self.device)
         return model.track(frame_high_quality, persist=True, verbose=False, device=self.device), frame_high_quality

@@ -19,9 +19,6 @@ class FrameTracker(threading.Thread):
         write_frame: Function to write frames.
         track_history: Dictionary to store object tracking history.
         queue_event: Event for queue synchronization.
-
-    Returns:
-        None
     """
 
     def __init__(self, results_queue, video_writer, track_movement_history, write_frame,
@@ -38,25 +35,21 @@ class FrameTracker(threading.Thread):
         self.delay_time = delay_time
         self.movement_threshold = movement_threshold
 
-
     def run(self):
         """
         Runs the frame tracking process continuously.
-
-        Args:
-            self: The instance of the class.
-
-        Returns:
-            None
         """
 
         while True:
             self.queue_event.wait()
+            items = []
             while not self.results_queue.empty():
                 try:
-                    results, frame = self.results_queue.get_nowait()
+                    items.append(self.results_queue.get_nowait())
+                    # results, frame = self.results_queue.get_nowait()
                 except queue.Empty:
                     break
+            for results, frame in items:
                 self.handle_tracking(results)
                 if self.video_writer.recording:
                     self.write_frame(frame)
@@ -69,15 +62,13 @@ class FrameTracker(threading.Thread):
 
         Args:
             results: The detection results to process.
-
-        Returns:
-            None
         """
 
         boxes = results[0].boxes.xyxy.cpu()
         if results[0].boxes.id is not None:
-            clss = results[0].boxes.cls.cpu().tolist()
-            track_ids = results[0].boxes.id.int().cpu().tolist()
+            boxes_cpu = results[0].boxes.cpu()
+            clss = boxes_cpu.cls.tolist()
+            track_ids = boxes_cpu.id.int().tolist()
 
             for box, cls, track_id in zip(boxes, clss, track_ids):
                 self.track_movement_history(track_id, box)
@@ -91,13 +82,10 @@ class FrameTracker(threading.Thread):
 
         Args:
             track_id: The identifier of the track to process.
-
-        Returns:
-            None
         """
-        prev_center = self.track_history[track_id][-2]
-        current_center = self.track_history[track_id][-1]
-        displacement = np.linalg.norm(np.array(prev_center) - np.array(current_center))
+        prev_center = np.array(self.track_history[track_id][-2])
+        current_center = np.array(self.track_history[track_id][-1])
+        displacement = np.linalg.norm(prev_center - current_center)
 
         # Plot tracks if sufficient movement
         if displacement > self.movement_threshold:
@@ -106,7 +94,6 @@ class FrameTracker(threading.Thread):
             self.motion_stop_time = None
 
         if displacement < self.movement_threshold:
-
             if not self.motion_stop_time:
                 self.motion_stop_time = time.time()
             if self.video_writer.recording and (time.time() - self.motion_stop_time) > self.delay_time:

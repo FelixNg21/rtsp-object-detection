@@ -58,8 +58,7 @@ class VideoWriter:
         Create the directory structure for the given filename.
         """
         directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory, exist_ok=True)
 
     def write_frame(self, frame):
         """
