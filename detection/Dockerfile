@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10.14 as base
+FROM python:3.10.14 AS base
 WORKDIR /app
 COPY requirements.txt /app
 
-FROM base as final
+FROM base AS final
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
@@ -13,6 +13,6 @@ RUN apt-get update && \
 
 COPY . /app
 
-CMD ["python", "cam_detect_yolo_docker.py"]
+CMD ["python", "runner.py"]
 
 

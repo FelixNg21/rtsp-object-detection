@@ -112,12 +112,7 @@ class MotionDetector:
         Returns:
             None
         """
-        try:
-            cap = cv2.VideoCapture(self.rtsp_url)
-        except Exception as e:
-            print(f"Failed to open {self.rtsp_url}")
-            print(e)
-            return
+        cap = cv2.VideoCapture(self.rtsp_url)
         assert cap.isOpened(), f"Failed to open {self.rtsp_url}"
 
         if self.h_high.value == 0:
