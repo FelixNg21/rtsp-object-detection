@@ -34,6 +34,16 @@ After further digging, I found a script that ran YOLO locally, bypassing the nee
 This tutorial can be found [here](https://github.com/akash-agni/Real-Time-Object-Detection/blob/main/Object_Detection_Youtube.py).
 I adapted this script to work with an RTSP stream. This script had the best performance which I attribute to the lack of use of a local server.
 
+# Refactor (`refactor` branch, now merged into `main`)
+Code was refactored to be more modular and easier to read. Threading and multiprocessing were also explored to see if
+performance could be improved. But it appears that the bottleneck is the inference time of the YOLO model, which I am 
+not currently able to improve upon. 
+
+Since this project was meant to be deployable on a low powered device, it looks like I've hit a dead end. I looked into
+[Frigate](https://github.com/blakeblackshear/frigate) which is a much more robust and developed solution and the way 
+they minimize computational load is to perform motion masks firsts before running object detection. This is likely the
+route I will take in the future.
+
 # Working model
 This brings me to the latest iteration of the project, which heavily depends on another GitHub 
 [repo](https://github.com/mrlt8/docker-wyze-bridge) that provides a nice UI to browse a feed from all my Wyze cameras,
