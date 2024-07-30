@@ -2,7 +2,6 @@ import logging
 import sys
 import signal
 import threading
-import time
 import queue
 
 from collections import defaultdict, deque
