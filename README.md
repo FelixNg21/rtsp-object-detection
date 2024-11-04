@@ -67,6 +67,15 @@ I also tried to use a sub-stream for the RTSP stream provided by the `wyze-bridg
 resolution video frame would be accelerated, but the stream is delayed by several seconds, resulting in the bounding box
 being ahead of the object when added to the full resolution stream.
 
+# Current work
+After my Wyze Cam Plus subscription ended, clip creation have a cooldown and any subsequent motion detection will just 
+show the first frame of motion, resulting in no information gained. I've dug around in the 'wyze-bridge' wiki and found
+settings that allow for recording of the stream. My current plan is to process the resultant video file and create clips 
+if there is motion detected.
+
+A docker-compose-recorder-example.yml is provided in the 'recorder' folder. It outlines the environment variables that
+I've used to record the stream.
+
 # Future work
 Until I find a suitable device for deployment, I'll look to improving different aspects of the app:
 

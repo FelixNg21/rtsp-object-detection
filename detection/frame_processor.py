@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from ultralytics import YOLO
 import torch
 import time
-
+import cv2
 
 class FrameProcessor(threading.Thread):
     """
@@ -82,4 +82,5 @@ class FrameProcessor(threading.Thread):
             frame_high_quality: The high-quality frame to process.
         """
         model = YOLO(self.model_name).to(self.device)
-        return model.track(frame_high_quality, persist=True, verbose=False, device=self.device), frame_high_quality
+        frame_high_quality = cv2.resize(frame_high_quality, (640, 480))
+        return model.track(frame_high_quality, persist=True, verbose=True, device=self.device), frame_high_quality

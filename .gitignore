@@ -10,3 +10,7 @@
 /detection/videos/
 .idea/
 /train/
+
+/runs/
+/mqtt/
+/frontend/
