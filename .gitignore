@@ -3,8 +3,7 @@
 *.mp4
 /media/
 /videos/
-/IP camera/videos/
-/IP camera/training/
+/IP camera/
 
 /frontend/portal/.venv/
 /detection/videos/
@@ -14,3 +13,4 @@
 /runs/
 /mqtt/
 /frontend/
+
