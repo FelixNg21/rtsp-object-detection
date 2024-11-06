@@ -17,7 +17,6 @@ class MotionDetector:
 
     def run(self, video_path):
         cap = cv2.VideoCapture(video_path)
-        print("fps:", cap.get(cv2.CAP_PROP_FPS))
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -27,6 +26,7 @@ class MotionDetector:
             if self.video_writer.recording:
                 self.video_writer.write_frame(frame)
         cap.release()
+        self.video_writer.stop_recording()
 
     def handle_tracking(self, results):
         boxes = results[0].boxes.xywh.cpu()
