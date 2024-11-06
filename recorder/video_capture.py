@@ -3,20 +3,20 @@ import cv2
 
 class VideoCapture:
     """
-    A class for capturing video from an RTSP stream.
+    A class for capturing video from a video file.
 
-    Initializes the VideoCapture object with the RTSP URL and captures video frames.
+    Initializes the VideoCapture object with the video file path and captures video frames.
 
     Args:
-        rtsp_url: The RTSP URL for the video stream.
+        path: The path to the video file.
     """
 
-    def __init__(self, rtsp_url):
-        self.rtsp_url = rtsp_url
+    def __init__(self, path):
+        self.path = path
         self.cap = None
 
         while self.cap is None or not self.cap.isOpened():
-            self.cap = cv2.VideoCapture(self.rtsp_url)
+            self.cap = cv2.VideoCapture(self.path)
             if not self.cap.isOpened():
                 print("Error opening video stream or file")
 

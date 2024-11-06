@@ -1,7 +1,7 @@
 from video_writer import VideoWriter
 from motion_detector_threaded import MotionDetector
 from file_manager import FileManager
-from video_capture import VideoCapture
+from stream_capture import StreamCapture
 import config
 import time
 
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     url = "rtsp://localhost:8554/driveway"
 
     print("Starting")
-    cap = VideoCapture(url)
+    cap = StreamCapture(url)
     print("Started video capture")
 
     # Create Video Writer object

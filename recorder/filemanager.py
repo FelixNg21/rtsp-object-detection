@@ -24,6 +24,5 @@ class FileManager:
             self.file_queue.put(file)
         self.existing_files = current_files
 
-
     def get_file_queue(self):
         return self.file_queue

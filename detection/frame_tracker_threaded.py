@@ -11,11 +11,9 @@ class FrameTracker(threading.Thread):
     Initializes the FrameTracker object with necessary attributes.
 
     Args:
-        cap: The video capture object.
         results_queue: The queue for storing detection results.
         video_writer: The video writer object.
         track_movement_history: Function to track movement history.
-        plot_tracks: Function to plot object tracks.
         write_frame: Function to write frames.
         track_history: Dictionary to store object tracking history.
         queue_event: Event for queue synchronization.
@@ -53,6 +51,7 @@ class FrameTracker(threading.Thread):
                 self.handle_tracking(results)
                 if self.video_writer.recording:
                     self.write_frame(frame)
+
             time.sleep(0.1)
             self.queue_event.clear()
 
@@ -88,13 +87,13 @@ class FrameTracker(threading.Thread):
         displacement = np.linalg.norm(prev_center - current_center)
 
         # Plot tracks if sufficient movement
-        if displacement > self.movement_threshold:
+        if displacement >= self.movement_threshold:
             if not self.video_writer.recording:
                 self.video_writer.start_recording()
             self.motion_stop_time = None
 
-        if displacement < self.movement_threshold:
-            if not self.motion_stop_time:
+        else:
+            if self.motion_stop_time is None:
                 self.motion_stop_time = time.time()
             if self.video_writer.recording and (time.time() - self.motion_stop_time) > self.delay_time:
                 self.video_writer.stop_recording()

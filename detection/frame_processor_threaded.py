@@ -5,6 +5,7 @@ import torch
 import time
 import cv2
 
+
 class FrameProcessor(threading.Thread):
     """
        A class for processing frames in a video stream.
@@ -23,12 +24,13 @@ class FrameProcessor(threading.Thread):
         self.cap = cap
         self.frame_queue = frame_queue
         self.results_queue = results_queue
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=2)
         self.queue_event = queue_event
         self.frame_buffer = {}
         self.sequence_number = 0
         self.model_name = model_name
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = YOLO(self.model_name).to(self.device)
 
     def run(self):
         """
@@ -49,6 +51,7 @@ class FrameProcessor(threading.Thread):
                 future.add_done_callback(lambda fut: self.processing_done(fut, seq))
             self.check_and_update_queue()
             time.sleep(0.001)
+
 
     def processing_done(self, future, sequence):
         """
@@ -81,6 +84,7 @@ class FrameProcessor(threading.Thread):
         Args:
             frame_high_quality: The high-quality frame to process.
         """
-        model = YOLO(self.model_name).to(self.device)
+
         frame_high_quality = cv2.resize(frame_high_quality, (640, 480))
-        return model.track(frame_high_quality, persist=True, verbose=True, device=self.device), frame_high_quality
+        return self.model.track(frame_high_quality, persist=True, verbose=False, device=self.device), frame_high_quality
+

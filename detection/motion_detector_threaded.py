@@ -6,8 +6,8 @@ import queue
 
 from collections import defaultdict, deque
 
-from frame_processor import FrameProcessor
-from frame_tracker import FrameTracker
+from detection.frame_processor_threaded import FrameProcessor
+from detection.frame_tracker_threaded import FrameTracker
 
 
 def track_history_default():
