@@ -22,7 +22,7 @@ if __name__ == "__main__":
         file_queue = file_manager.get_file_queue()
         while not file_queue.empty():
             video_file = file_queue.get()
-
+            file_manager.mark_file_as_processed(video_file)
             motion_detector.run(video_file)
 
         time.sleep(60)
