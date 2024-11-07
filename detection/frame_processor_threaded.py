@@ -52,7 +52,6 @@ class FrameProcessor(threading.Thread):
             self.check_and_update_queue()
             time.sleep(0.001)
 
-
     def processing_done(self, future, sequence):
         """
         Handles the completion of frame processing.
@@ -87,4 +86,3 @@ class FrameProcessor(threading.Thread):
 
         frame_high_quality = cv2.resize(frame_high_quality, (640, 480))
         return self.model.track(frame_high_quality, persist=True, verbose=False, device=self.device), frame_high_quality
-

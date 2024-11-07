@@ -73,7 +73,8 @@ class VideoWriter:
         """
         Stop recording a video.
         """
-        self.video_writer.release()
+        if self.video_writer is not None:
+            self.video_writer.release()
         self.video_writer = None
         self.recording = False
         print("Stopped recording")

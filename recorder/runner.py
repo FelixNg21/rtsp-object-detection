@@ -25,6 +25,4 @@ if __name__ == "__main__":
 
             motion_detector.run(video_file)
 
-
-
         time.sleep(60)

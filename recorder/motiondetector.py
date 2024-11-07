@@ -4,6 +4,8 @@ import torch
 from collections import defaultdict
 import numpy as np
 import time
+import signal
+
 
 class MotionDetector:
     def __init__(self, model_name, movement_threshold, delay_time, video_writer):
@@ -14,6 +16,10 @@ class MotionDetector:
         self.video_writer = video_writer
         self.track_history = defaultdict(lambda: [])
         self.motion_stop_time = None
+
+        # Register signal handlers
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def run(self, video_path):
         cap = cv2.VideoCapture(video_path)
@@ -26,15 +32,17 @@ class MotionDetector:
             if self.video_writer.recording:
                 self.video_writer.write_frame(frame)
         cap.release()
-        self.video_writer.stop_recording()
+        self.video_writer.cleanup()
 
     def handle_tracking(self, results):
         boxes = results[0].boxes.xywh.cpu()
         if results[0].boxes.id is not None:
             boxes_cpu = results[0].boxes.cpu()
-            clss = boxes_cpu.cls.tolist() # can filter unwanted classes
+            clss = boxes_cpu.cls.tolist()  # can filter unwanted classes
+            names = results[0].names # all class names in model
             track_ids = boxes_cpu.id.int().tolist()
             for box, cls, track_id in zip(boxes, clss, track_ids):
+
                 self.track_history[track_id].append((box[0], box[1]))
                 if len(self.track_history[track_id]) >= 2:
                     self.plot_tracks(track_id)
@@ -56,10 +64,7 @@ class MotionDetector:
                 self.track_history.clear()
                 self.motion_stop_time = None
 
-
-from detection.video_writer import VideoWriter
-
-vw = VideoWriter("C:\\Users\Felix\Desktop\Camera\clips", 1920, 1080, 20)
-md = MotionDetector("yolo11n.pt", 15, 5, vw)
-md.run("C:\\Users\Felix\Desktop\Camera\\videos\driveway\\2024-11-04\driveway_14_04_52.mp4")
-cv2.destroyAllWindows()
+    def signal_handler(self, signum, frame):
+        if self.video_writer.recording():
+            self.video_writer.stop_recording()
+        self.video_writer.cleanup()
