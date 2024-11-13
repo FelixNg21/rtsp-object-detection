@@ -20,7 +20,8 @@ class FileManager:
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS processed_files (
                 id INTEGER PRIMARY KEY,
-                file_path TEXT UNIQUE
+                file_name TEXT UNIQUE,
+                date DATE DEFAULT CURRENT_DATE 
             )
         ''')
         self.conn.commit()
@@ -33,11 +34,12 @@ class FileManager:
         return all_files
 
     def _load_processed_files(self):
-        self.cursor.execute('SELECT file_path FROM processed_files')
+        self.cursor.execute('SELECT file_name FROM processed_files')
         return set([row[0] for row in self.cursor.fetchall()])
 
     def _save_processed_file(self, file):
-        self.cursor.execute('INSERT OR IGNORE INTO processed_files (file_path) VALUES (?)', (file,))
+        date = file.split("\\")[-2]
+        self.cursor.execute('INSERT OR IGNORE INTO processed_files (file_name, date) VALUES (?, ?)', (file, date,))
         self.conn.commit()
 
     def detect_new_files(self):
@@ -54,4 +56,3 @@ class FileManager:
     def mark_file_as_processed(self, file):
         self.processed_files.add(file)
         self._save_processed_file(file)
-

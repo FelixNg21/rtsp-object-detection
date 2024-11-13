@@ -8,7 +8,7 @@ import signal
 
 
 class MotionDetector:
-    def __init__(self, model_name, movement_threshold, delay_time, video_writer):
+    def __init__(self, model_name, movement_threshold, delay_time, video_writer, mask_coords=None):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = YOLO(model_name).to(self.device)
         self.movement_threshold = movement_threshold
@@ -16,6 +16,13 @@ class MotionDetector:
         self.video_writer = video_writer
         self.track_history = defaultdict(lambda: [])
         self.motion_stop_time = None
+
+        # Load mask coordinates
+        self.mask = None
+        if mask_coords:
+            self.mask = np.zeros((1080, 1920), dtype=np.uint8)
+            cv2.fillPoly(self.mask, [np.array(mask_coords)], 255)
+            self.mask = cv2.bitwise_not(self.mask)
 
         # Register signal handlers
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -27,7 +34,14 @@ class MotionDetector:
             ret, frame = cap.read()
             if not ret:
                 break
-            results = self.model.track(frame, persist=True, verbose=False)
+
+            if self.mask is not None:
+                frame_masked = cv2.bitwise_and(frame, frame, mask=self.mask)
+            assert frame_masked is not None
+            results = self.model.track(frame_masked, persist=True, verbose=False)
+            cv2.imshow("frame", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
             self.handle_tracking(results)
             if self.video_writer.recording:
                 self.video_writer.write_frame(frame)

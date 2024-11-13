@@ -15,7 +15,9 @@ if __name__ == "__main__":
     delay_time = config.DELAY_TIME
 
     video_writer = VideoWriter(video_dir, 1920, 1080, 20)
-    motion_detector = MotionDetector(model_name, movement_threshold, delay_time, video_writer)
+
+    mask_coords = config.MASK_COORDS
+    motion_detector = MotionDetector(model_name, movement_threshold, delay_time, video_writer, mask_coords)
     while True:
         file_manager.detect_new_files()
 
