@@ -79,6 +79,6 @@ class MotionDetector:
                 self.motion_stop_time = None
 
     def signal_handler(self, signum, frame):
-        if self.video_writer.recording():
+        if self.video_writer.recording:
             self.video_writer.stop_recording()
         self.video_writer.cleanup()
