@@ -1,12 +1,11 @@
 from filemanager import FileManager
-from detection.video_writer import VideoWriter
+from video_writer import VideoWriter
 from motiondetector import MotionDetector
-from detection import config
+import config
 import time
 
 if __name__ == "__main__":
     video_path = "C:\\Users\Felix\Desktop\Camera\\videos"
-
     file_manager = FileManager(video_path)
 
     video_dir = "C:\\Users\Felix\Desktop\Camera\clips"
