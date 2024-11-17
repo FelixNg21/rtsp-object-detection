@@ -38,7 +38,12 @@ class FileManager:
         return set([row[0] for row in self.cursor.fetchall()])
 
     def _save_processed_file(self, file):
-        date = file.split("\\")[-2]
+        print(file)
+        if "\\" in file:
+            date = file.split("\\")[-2]
+            print(date)
+        else:
+            date = file.split("/")[-2]
         self.cursor.execute('INSERT OR IGNORE INTO processed_files (file_name, date) VALUES (?, ?)', (file, date,))
         self.conn.commit()
 

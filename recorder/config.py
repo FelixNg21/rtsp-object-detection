@@ -9,6 +9,8 @@ DELAY_TIME = int(getenv("DELAY_TIME", 5))
 
 DAY_THRESHOLD = int(getenv("DAY_THRESHOLD", 7))
 
-VIDEO_DIR = getenv("VIDEO_DIR", "videos")
+VIDEO_SOURCE = getenv("VIDEO_SOURCE", "videos")
+CLIP_DEST = getenv("CLIP_DEST", "clips")
+
 
 MASK_COORDS = [(0, 0), (0, 733), (781, 695), (1110, 651), (1505, 597), (1630, 593), (1595, 0)]

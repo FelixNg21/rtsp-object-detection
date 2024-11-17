@@ -28,16 +28,22 @@ class VideoWriter:
         self.video_writer = None
         self.recording = False
 
-    def start_recording(self):
+    def start_recording(self, filename):
         """
         Initialize the video writer to start recording a video.
         """
         if not self.video_writer:
             self.recording = True
-            filename = self._generate_filename()
-            self._create_directory(filename)
+            date = filename.split("/")[2]
+            time_h = filename.split("/")[3].split("_")[1]
+            time_s = filename.split("/")[3].split("_")[2]
+            time_ms = filename.split("/")[3].split("_")[3].split(".")[0]
+            filename_dest = f"{self.video_dir}/{date}/{date}_{time_h}_{time_s}_{time_ms}.mp4"
+            # filename = self._generate_filename()
+            # print(f"filename:", filename)
+            self._create_directory(filename_dest)
             self.video_writer = cv2.VideoWriter(
-                filename,
+                filename_dest,
                 cv2.VideoWriter_fourcc(*'mp4v'),
                 self.fps,
                 (self.w, self.h),

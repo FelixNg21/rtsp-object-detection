@@ -34,21 +34,19 @@ class MotionDetector:
             ret, frame = cap.read()
             if not ret:
                 break
-
             if self.mask is not None:
                 frame_masked = cv2.bitwise_and(frame, frame, mask=self.mask)
-            assert frame_masked is not None
-            results = self.model.track(frame_masked, persist=True, verbose=False)
-            cv2.imshow("frame", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            self.handle_tracking(results)
+                results = self.model.track(frame_masked, persist=True, verbose=False)
+            else:
+                results = self.model.track(frame, persist=True, verbose=False)
+            self.handle_tracking(results, filename=video_path)
             if self.video_writer.recording:
+                print("Writing frame")
                 self.video_writer.write_frame(frame)
         cap.release()
         self.video_writer.cleanup()
 
-    def handle_tracking(self, results):
+    def handle_tracking(self, results, filename=None):
         boxes = results[0].boxes.xywh.cpu()
         if results[0].boxes.id is not None:
             boxes_cpu = results[0].boxes.cpu()
@@ -56,19 +54,18 @@ class MotionDetector:
             names = results[0].names # all class names in model
             track_ids = boxes_cpu.id.int().tolist()
             for box, cls, track_id in zip(boxes, clss, track_ids):
-
                 self.track_history[track_id].append((box[0], box[1]))
                 if len(self.track_history[track_id]) >= 2:
-                    self.plot_tracks(track_id)
+                    self.plot_tracks(track_id, filename)
 
-    def plot_tracks(self, track_id):
+    def plot_tracks(self, track_id, filename):
         prev_center = np.array(self.track_history[track_id][-2])
         curr_center = np.array(self.track_history[track_id][-1])
         displacement = np.linalg.norm(curr_center - prev_center)
 
         if displacement >= self.movement_threshold:
             if not self.video_writer.recording:
-                self.video_writer.start_recording()
+                self.video_writer.start_recording(filename)
             self.motion_stop_time = None
         else:
             if self.motion_stop_time is None:
