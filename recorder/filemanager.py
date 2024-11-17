@@ -4,7 +4,7 @@ import sqlite3
 
 
 class FileManager:
-    def __init__(self, path, db_file='processed_files.db'):
+    def __init__(self, path, db_file='/app/data/processed_files.db'):
         self.path = path
         self.file_queue = queue.Queue()
         self.db_file = db_file
@@ -38,10 +38,8 @@ class FileManager:
         return set([row[0] for row in self.cursor.fetchall()])
 
     def _save_processed_file(self, file):
-        print(file)
         if "\\" in file:
             date = file.split("\\")[-2]
-            print(date)
         else:
             date = file.split("/")[-2]
         self.cursor.execute('INSERT OR IGNORE INTO processed_files (file_name, date) VALUES (?, ?)', (file, date,))

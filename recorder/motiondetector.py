@@ -41,7 +41,6 @@ class MotionDetector:
                 results = self.model.track(frame, persist=True, verbose=False)
             self.handle_tracking(results, filename=video_path)
             if self.video_writer.recording:
-                print("Writing frame")
                 self.video_writer.write_frame(frame)
         cap.release()
         self.video_writer.cleanup()

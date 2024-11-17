@@ -34,11 +34,13 @@ class VideoWriter:
         """
         if not self.video_writer:
             self.recording = True
-            date = filename.split("/")[2]
-            time_h = filename.split("/")[3].split("_")[1]
-            time_s = filename.split("/")[3].split("_")[2]
-            time_ms = filename.split("/")[3].split("_")[3].split(".")[0]
-            filename_dest = f"{self.video_dir}/{date}/{date}_{time_h}_{time_s}_{time_ms}.mp4"
+            date = filename.split("/")[2] #TODO: figure out a better way to utilize filename to get file structure
+            # time_h = filename.split("/")[3].split("_")[1]
+            # time_s = filename.split("/")[3].split("_")[2]
+            # time_ms = filename.split("/")[3].split("_")[3].split(".")[0]
+            # filename_dest = f"{self.video_dir}/{date}/{date}_{time_h}_{time_s}_{time_ms}.mp4"
+            time = filename.split("/")[3].split(".")[0]
+            filename_dest = f"{self.video_dir}/{date}/{time}"
             # filename = self._generate_filename()
             # print(f"filename:", filename)
             self._create_directory(filename_dest)
