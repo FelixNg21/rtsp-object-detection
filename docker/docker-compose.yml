@@ -1,0 +1,54 @@
+services:
+    wyze-bridge:
+        container_name: wyze-bridge
+        restart: unless-stopped
+        image: mrlt8/wyze-bridge:latest
+        ports:
+            - 1935:1935 # RTMP
+            - 8554:8554 # RTSP
+            - 8888:8888 # HLS
+            - 8889:8889 #WebRTC
+            - 8189:8189/udp # WebRTC/ICE
+            - 5001:5000 # WEB-UI
+        environment:
+            - WYZE_EMAIL=gnxilef@gmail.com
+            - WYZE_PASSWORD=AeIuo7g13241
+            - API_ID=5d852c49-cbc5-4115-858f-eedc21021dcc # Wyze API ID
+            - API_KEY=5CTJJFKGZdk6jU4blENlo2u8Z8IdhzpwQJlxA6MlkESiwijl4K06GgEYxgh3 # Wyze API Key
+            - WB_AUTH=False
+            - FILTER_NAMES=driveway
+            - SNAPSHOT=API
+            - MTX_WRITEQUEUESIZE=4096
+            - FFMPEG_FLAGS=-fflags +flush_packets+genpts+discardcorrupt+nobuffer
+            - ENABLE_AUDIO=False
+            - MOTION_API=True
+            - MOTION_INT=1.5 #float, default 1.5
+        networks:
+            - wyze-bridge-network
+    detection:
+        container_name: wyze-detection
+        restart: unless-stopped
+        image: felixng2/wyze-cam-detection:latest
+        volumes:
+            - C:\Users\Felix\Desktop\Camera\videos:/app/videos # set first half to your local path
+        networks:
+            - wyze-bridge-network
+        depends_on:
+            - wyze-bridge
+        environment:
+            - TZ= America/Vancouver # Timezone
+            - RTSP_URL=rtsp://wyze-bridge:8554/ # RTSP URL
+            - RTSP_CAM_NAME=driveway
+            - MODEL_NAME=yolov8n.pt # A yolov8 model provided by Ultralytics
+            - MOVE_THRESHOLD=5 # Threshold for motion detection
+        cpuset: 1-3
+
+#    frontend:
+#        container_name: wyze-detection-frontend
+#        restart: unless-stopped
+#        image: felixng2/detection-frontend:latest
+#        ports:
+#            - 5002:5000
+networks:
+    wyze-bridge-network:
+
