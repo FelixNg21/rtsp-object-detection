@@ -53,12 +53,22 @@ def grab_still_image(video_path, frame_number, output_image_path):
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 
-filename_str = "videos/driveway/2024-11-04/driveway_14_05_52.mp4"
-filename_str_split = filename_str.split("/")
-print(filename_str_split)
-date = filename_str_split[2]
-print(date)
-time_h = filename_str_split[3].split("_")[1]
-time_s = filename_str_split[3].split("_")[2]
-time_ms = filename_str_split[3].split("_")[3].split(".")[0]
-print(time_h, time_s, time_ms)
+# filename_str = "videos/driveway/2024-11-04/driveway_14_05_52.mp4"
+# filename_str_split = filename_str.split("/")
+# print(filename_str_split)
+# date = filename_str_split[2]
+# print(date)
+# time_h = filename_str_split[3].split("_")[1]
+# time_s = filename_str_split[3].split("_")[2]
+# time_ms = filename_str_split[3].split("_")[3].split(".")[0]
+# print(time_h, time_s, time_ms)
+
+
+import time
+time_1 = time.time()
+
+time.sleep(5)
+
+time_2 = time.time()
+
+print(time_2 - time_1)

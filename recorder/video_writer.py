@@ -19,6 +19,7 @@ class VideoWriter:
     Returns:
         None
     """
+
     def __init__(self, video_dir, w, h, fps):
         self.video_dir = video_dir
         self.w = w
@@ -34,15 +35,9 @@ class VideoWriter:
         """
         if not self.video_writer:
             self.recording = True
-            date = filename.split("/")[2] #TODO: figure out a better way to utilize filename to get file structure
-            # time_h = filename.split("/")[3].split("_")[1]
-            # time_s = filename.split("/")[3].split("_")[2]
-            # time_ms = filename.split("/")[3].split("_")[3].split(".")[0]
-            # filename_dest = f"{self.video_dir}/{date}/{date}_{time_h}_{time_s}_{time_ms}.mp4"
+            date = filename.split("/")[2]  # TODO: figure out a better way to utilize filename to get file structure
             time = filename.split("/")[3].split(".")[0]
-            filename_dest = f"{self.video_dir}/{date}/{time}"
-            # filename = self._generate_filename()
-            # print(f"filename:", filename)
+            filename_dest = f"{self.video_dir}/{date}/{time}.mp4"
             self._create_directory(filename_dest)
             self.video_writer = cv2.VideoWriter(
                 filename_dest,
@@ -50,7 +45,12 @@ class VideoWriter:
                 self.fps,
                 (self.w, self.h),
             )
-            print("Created video_writer")
+            if not self.video_writer.isOpened():
+                print("Error opening video writer")
+                self.video_writer = None
+                self.recording = False
+            else:
+                print("Created video_writer for", filename_dest)
 
     def _generate_filename(self):
         """
@@ -67,6 +67,7 @@ class VideoWriter:
         """
         directory = os.path.dirname(filename)
         os.makedirs(directory, exist_ok=True)
+        print("Created directory:", directory)
 
     def write_frame(self, frame):
         """
@@ -85,7 +86,6 @@ class VideoWriter:
             self.video_writer.release()
         self.video_writer = None
         self.recording = False
-        print("Stopped recording")
 
     def cleanup(self):
         """

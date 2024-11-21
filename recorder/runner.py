@@ -2,7 +2,7 @@ from filemanager import FileManager
 from video_writer import VideoWriter
 from motiondetector import MotionDetector
 import config
-import time
+
 
 if __name__ == "__main__":
     video_path = config.VIDEO_SOURCE
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
         while not file_queue.empty():
             video_file = file_queue.get()
+            print("Processing file:", video_file)
             file_manager.mark_file_as_processed(video_file)
             motion_detector.run(video_file)
 
-        time.sleep(60)

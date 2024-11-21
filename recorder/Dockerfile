@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.10.14 AS base
+FROM python:3.10-slim-bookworm AS base
 WORKDIR /app
 COPY requirements.txt /app
 ENV PYTHONUNBUFFERED=1

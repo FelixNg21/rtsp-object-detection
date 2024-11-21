@@ -5,7 +5,7 @@ RTSP_URL = getenv("RTSP_URL")
 RTSP_CAM_NAME = get_env_list(getenv("RTSP_CAM_NAME"))
 MODEL_NAME = getenv("MODEL_NAME", "yolo11n.pt")
 MOVEMENT_THRESHOLD = int(getenv("MOVEMENT_THRESHOLD", 15))
-DELAY_TIME = int(getenv("DELAY_TIME", 5))
+DELAY_TIME = int(getenv("DELAY_TIME", 10))
 
 DAY_THRESHOLD = int(getenv("DAY_THRESHOLD", 7))
 

@@ -14,3 +14,6 @@
 /mqtt/
 /frontend/
 
+/docker/docker-compose-record.yml
+/docker/docker-compose.yml
+
