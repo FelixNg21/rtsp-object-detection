@@ -4,6 +4,8 @@ from motiondetector import MotionDetector
 import config
 import time
 
+import datetime
+
 if __name__ == "__main__":
     video_path = config.VIDEO_SOURCE
     file_manager = FileManager(video_path)
@@ -22,7 +24,7 @@ if __name__ == "__main__":
 
         while not file_queue.empty():
             video_file = file_queue.get()
+            print(f"{datetime.datetime.now().time()} Processing file: ", video_file)
             file_manager.mark_file_as_processed(video_file)
             motion_detector.run(video_file)
 
-        time.sleep(60)

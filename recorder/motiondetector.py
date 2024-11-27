@@ -9,7 +9,9 @@ import signal
 
 class MotionDetector:
     def __init__(self, model_name, movement_threshold, delay_time, video_writer, mask_coords=None):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+        print(f"Using device: {self.device}")
         self.model = YOLO(model_name).to(self.device)
         self.movement_threshold = movement_threshold
         self.delay_time = delay_time
@@ -21,7 +23,8 @@ class MotionDetector:
         self.mask = None
         if mask_coords:
             self.mask = np.zeros((1080, 1920), dtype=np.uint8)
-            cv2.fillPoly(self.mask, [np.array(mask_coords)], 255)
+            mask_coords = np.array(mask_coords, dtype=np.int32)
+            cv2.fillPoly(self.mask, [mask_coords], 255)
             self.mask = cv2.bitwise_not(self.mask)
 
         # Register signal handlers
@@ -36,6 +39,7 @@ class MotionDetector:
                 break
             if self.mask is not None:
                 frame_masked = cv2.bitwise_and(frame, frame, mask=self.mask)
+                frame_masked = np.array(frame_masked, dtype=np.uint8)
                 results = self.model.track(frame_masked, persist=True, verbose=False)
             else:
                 results = self.model.track(frame, persist=True, verbose=False)
@@ -49,10 +53,10 @@ class MotionDetector:
         boxes = results[0].boxes.xywh.cpu()
         if results[0].boxes.id is not None:
             boxes_cpu = results[0].boxes.cpu()
-            clss = boxes_cpu.cls.tolist()  # can filter unwanted classes
-            names = results[0].names # all class names in model
+            # clss = boxes_cpu.cls.tolist()  # can filter unwanted classes
+            # names = results[0].names  # all class names in model
             track_ids = boxes_cpu.id.int().tolist()
-            for box, cls, track_id in zip(boxes, clss, track_ids):
+            for box, track_id in zip(boxes, track_ids):
                 self.track_history[track_id].append((box[0], box[1]))
                 if len(self.track_history[track_id]) >= 2:
                     self.plot_tracks(track_id, filename)
@@ -69,7 +73,8 @@ class MotionDetector:
         else:
             if self.motion_stop_time is None:
                 self.motion_stop_time = time.time()
-            if self.video_writer.recording and (time.time() - self.motion_stop_time) > self.delay_time:
+            if self.video_writer.recording and (
+                    time.time() - self.motion_stop_time) > self.delay_time:
                 self.video_writer.stop_recording()
                 self.track_history.clear()
                 self.motion_stop_time = None

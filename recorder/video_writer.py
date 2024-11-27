@@ -19,6 +19,7 @@ class VideoWriter:
     Returns:
         None
     """
+
     def __init__(self, video_dir, w, h, fps):
         self.video_dir = video_dir
         self.w = w
@@ -34,16 +35,15 @@ class VideoWriter:
         """
         if not self.video_writer:
             self.recording = True
-            date = filename.split("/")[2] #TODO: figure out a better way to utilize filename to get file structure
-            # time_h = filename.split("/")[3].split("_")[1]
-            # time_s = filename.split("/")[3].split("_")[2]
-            # time_ms = filename.split("/")[3].split("_")[3].split(".")[0]
-            # filename_dest = f"{self.video_dir}/{date}/{date}_{time_h}_{time_s}_{time_ms}.mp4"
-            time = filename.split("/")[3].split(".")[0]
+            date = filename.split("/")[-2]
+            time = "_".join(filename.split("/")[-1].split("_")[1:])
             filename_dest = f"{self.video_dir}/{date}/{time}"
-            # filename = self._generate_filename()
-            # print(f"filename:", filename)
             self._create_directory(filename_dest)
+            base_filename = filename_dest
+            counter = 1
+            while os.path.exists(filename_dest):
+                filename_dest = f"{base_filename.split('.')[0]}_{counter}.mp4"
+                counter += 1
             self.video_writer = cv2.VideoWriter(
                 filename_dest,
                 cv2.VideoWriter_fourcc(*'mp4v'),
