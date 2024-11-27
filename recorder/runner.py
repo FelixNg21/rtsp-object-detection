@@ -2,7 +2,6 @@ from filemanager import FileManager
 from video_writer import VideoWriter
 from motiondetector import MotionDetector
 import config
-import time
 
 import datetime
 
