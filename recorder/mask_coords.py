@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
+import argparse
 
 # List to store points
 points = []
-
 
 # Mouse callback function to draw the polygon
 def draw_polygon(event, x, y, flags, param):
@@ -16,36 +16,53 @@ def draw_polygon(event, x, y, flags, param):
         cv2.imshow("Image", image)
 
 
-# Load the image
-image = cv2.imread('output_image.jpg')
-clone = image.copy()
-cv2.namedWindow("Image")
-cv2.setMouseCallback("Image", draw_polygon)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("video", help="Path to a video produced by the docker-wyze-bridge.", type=str, required=True)
+    args = parser.parse_args()
 
-while True:
-    cv2.imshow("Image", image)
-    key = cv2.waitKey(1) & 0xFF
+    video = args.video
+    cap = cv2.VideoCapture(video)
+    if not cap.isOpened():
+        print("Error opening video file")
+        exit(1)
 
-    # Press 'r' to reset the drawing
-    if key == ord('r'):
-        image = clone.copy()
-        points = []
+    # Read the first frame
+    ret, frame = cap.read()
+    if not ret:
+        print("Error reading video file")
+        exit(1)
 
-    # Press 'q' to quit and save the mask
-    elif key == ord('q'):
-        break
 
-# Create a mask from the points
-mask = np.zeros(image.shape[:2], dtype=np.uint8)
-if len(points) > 2:
-    cv2.fillPoly(mask, [np.array(points)], 255)
+    # Create a copy of the frame
+    clone = frame.copy()
+    cv2.namedWindow("Image")
+    cv2.setMouseCallback("Image", draw_polygon)
 
-# Save the mask coordinates
-mask_coords = points
+    while True:
+        cv2.imshow("Image", frame)
+        key = cv2.waitKey(1) & 0xFF
 
-# Save the mask image
-cv2.imwrite('mask.png', mask)
+        # Press 'r' to reset the drawing
+        if key == ord('r'):
+            image = clone.copy()
+            points = []
 
-cv2.destroyAllWindows()
+        # Press 'q' to quit and save the mask
+        elif key == ord('q'):
+            break
 
-print("Mask coordinates:", mask_coords)
+    # Create a mask from the points
+    mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+    if len(points) > 2:
+        cv2.fillPoly(mask, [np.array(points)], 255)
+
+    # Save the mask coordinates
+    mask_coords = points
+
+    # Save the mask image
+    cv2.imwrite('mask.png', mask)
+
+    cv2.destroyAllWindows()
+
+    print("Mask coordinates:", mask_coords)
