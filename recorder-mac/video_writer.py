@@ -35,22 +35,22 @@ class VideoWriter:
         """
         if not self.video_writer:
             self.recording = True
-            date = filename.split("/")[2]  # TODO: figure out a better way to utilize filename to get file structure
-            time = filename.split("/")[3].split(".")[0]
-            filename_dest = f"{self.video_dir}/{date}/{time}.mp4"
+            date = filename.split("/")[-2]
+            time = "_".join(filename.split("/")[-1].split("_")[1:])
+            filename_dest = f"{self.video_dir}/{date}/{time}"
             self._create_directory(filename_dest)
+            base_filename = filename_dest
+            counter = 1
+            while os.path.exists(filename_dest):
+                filename_dest = f"{base_filename.split('.')[0]}_{counter}.mp4"
+                counter += 1
             self.video_writer = cv2.VideoWriter(
                 filename_dest,
                 cv2.VideoWriter_fourcc(*'mp4v'),
                 self.fps,
                 (self.w, self.h),
             )
-            if not self.video_writer.isOpened():
-                print("Error opening video writer")
-                self.video_writer = None
-                self.recording = False
-            else:
-                print("Created video_writer for", filename_dest)
+            print("Created video_writer")
 
     def _generate_filename(self):
         """
@@ -67,7 +67,6 @@ class VideoWriter:
         """
         directory = os.path.dirname(filename)
         os.makedirs(directory, exist_ok=True)
-        print("Created directory:", directory)
 
     def write_frame(self, frame):
         """
@@ -86,6 +85,7 @@ class VideoWriter:
             self.video_writer.release()
         self.video_writer = None
         self.recording = False
+        print("Stopped recording")
 
     def cleanup(self):
         """
