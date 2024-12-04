@@ -2,7 +2,7 @@ services:
     wyze-bridge:
         container_name: wyze-bridge
         restart: unless-stopped
-        image: mrlt8/wyze-bridge:latest
+        image: mrlt8/wyze-bridge:latest # GPU support with latest-hw image
         ports:
             - 1935:1935 # RTMP
             - 8554:8554 # RTSP
@@ -11,21 +11,24 @@ services:
             - 8189:8189/udp # WebRTC/ICE
             - 5001:5000 # WEB-UI
         environment:
-            - WYZE_EMAIL=
-            - WYZE_PASSWORD=
-            - API_ID= # Wyze API ID
-            - API_KEY= # Wyze API Key
-
+            - WYZE_EMAIL=REDACTED
+            - WYZE_PASSWORD=REDACTED
+            - API_ID=REDACTED # Wyze API ID
+            - API_KEY=REDACTED # Wyze API Key
+#            - FILTER_NAMES=driveway
             - WB_AUTH=False
             - FRESH_DATA=True
-
+            - ROTATE_DOOR=True
+#            - H264_ENC=h264_nvenc #GPU support
             # Recording settings
             - TZ=America/Vancouver
-            - RECORD_ALL=True
+            - RECORD_DRIVEWAY=True
             - RECORD_PATH=/record/{cam_name}/%Y-%m-%d
             - RECORD_FILE_NAME={cam_name}_%H_%M_%S
             - RECORD_LENGTH=60s
-
+        networks:
+            - wyze-bridge-network
+        # Recording settings
         volumes:
             - /local/path/:/record/
 #        deploy: #GPU support
@@ -37,4 +40,6 @@ services:
 #                          capabilities: [gpu]
 
 
+networks:
+    wyze-bridge-network:
 

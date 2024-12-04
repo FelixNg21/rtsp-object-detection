@@ -4,7 +4,7 @@ import sqlite3
 
 
 class FileManager:
-    def __init__(self, path, db_file='processed_files.db'):
+    def __init__(self, path, db_file='/app/data/processed_files.db'):
         self.path = path
         self.file_queue = queue.Queue()
         self.db_file = db_file
@@ -30,8 +30,7 @@ class FileManager:
         all_files = set()
         for root, dirs, files in os.walk(self.path):
             for file in files:
-                if file.endswith('.mp4'):
-                    all_files.add(os.path.join(root, file))
+                all_files.add(os.path.join(root, file))
         return all_files
 
     def _load_processed_files(self):
