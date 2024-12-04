@@ -5,8 +5,17 @@
 /videos/
 /IP camera/videos/
 /IP camera/training/
+/IP camera/
 
 /frontend/portal/.venv/
 /detection/videos/
 .idea/
 /train/
+
+/runs/
+/mqtt/
+/frontend/
+
+/docker/docker-compose-record.yml
+/docker/docker-compose.yml
+
