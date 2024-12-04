@@ -1,0 +1,16 @@
+/OpenCV-yolo-tutorial/
+*.pt
+*.mp4
+/media/
+/videos/
+/IP camera/
+
+/frontend/portal/.venv/
+/detection/videos/
+.idea/
+/train/
+
+/runs/
+/mqtt/
+/frontend/
+
