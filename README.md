@@ -1,3 +1,7 @@
+# Update (Feb 16, 2026)
+As Wyze now locks RTSP access behind their subscription service, it is now no longer possible to use [docker-wyze-bridge](https://github.com/mrlt8/docker-wyze-bridge)
+or any of the forks to expose an RTSP stream for any Wyze cams. This project has come to a close.
+
 # Object Detection on RTSP Stream or Video File
 
 This project aims to re-enable some of the features that Wyze has moved behind their subscription service.
